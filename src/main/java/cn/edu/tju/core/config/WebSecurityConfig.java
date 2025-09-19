@@ -78,7 +78,9 @@ public class WebSecurityConfig {
             "/v3/api-docs/**",
             "/h2-console/**",
             "/**.jsp",
-            "/**.html"
+            "/**.html",
+            "/api/businesses/**",   // 允许所有BusinessController的接口
+            "/httpRest/**"          // 允许HttpRestController的接口
     };
     /**
      * 配置Spring Security安全链。

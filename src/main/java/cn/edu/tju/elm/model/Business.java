@@ -2,18 +2,23 @@ package cn.edu.tju.elm.model;
 
 import cn.edu.tju.core.model.BaseEntity;
 import cn.edu.tju.core.model.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 @Entity
 @Table(name = "business")
+// 关键修复: 明确忽略所有由服务器管理的字段，防止客户端发送这些字段时导致反序列化错误
+@JsonIgnoreProperties(ignoreUnknown = true, value = { "id", "createTime", "updateTime", "creator", "updater", "deleted" }, allowSetters = true)
 public class Business extends BaseEntity {
 
     @Column(name = "business_name")
     private String businessName;
 
-    // 已修正: 将 FetchType 从 LAZY 改为 EAGER
-    // 这可以确保在序列化为 JSON 时，businessOwner 的数据已经被加载，从而避免 500 错误。
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "business_owner_id")
     private User businessOwner;
@@ -39,76 +44,43 @@ public class Business extends BaseEntity {
     @Column(name = "remarks")
     private String remarks;
 
-    // Getters and Setters
-    public String getBusinessName() {
-        return businessName;
-    }
-
-    public void setBusinessName(String businessName) {
-        this.businessName = businessName;
-    }
-
+    // 隐藏原始的 getter 方法，防止 JSON 序列化时产生无限循环
+    @JsonIgnore
     public User getBusinessOwner() {
         return businessOwner;
+    }
+
+    // 提供一个“安全”的 getter 方法用于 JSON 序列化，只包含必要信息
+    @JsonProperty("businessOwner")
+    public Map<String, Object> getSafeBusinessOwner() {
+        if (businessOwner == null) {
+            return null;
+        }
+        Map<String, Object> ownerMap = new HashMap<>();
+        ownerMap.put("id", businessOwner.getId());
+        ownerMap.put("username", businessOwner.getUsername());
+        return ownerMap;
     }
 
     public void setBusinessOwner(User businessOwner) {
         this.businessOwner = businessOwner;
     }
 
-    public String getBusinessAddress() {
-        return businessAddress;
-    }
-
-    public void setBusinessAddress(String businessAddress) {
-        this.businessAddress = businessAddress;
-    }
-
-    public String getBusinessExplain() {
-        return businessExplain;
-    }
-
-    public void setBusinessExplain(String businessExplain) {
-        this.businessExplain = businessExplain;
-    }
-
-    public String getBusinessImg() {
-        return businessImg;
-    }
-
-    public void setBusinessImg(String businessImg) {
-        this.businessImg = businessImg;
-    }
-
-    public Integer getOrderTypeId() {
-        return orderTypeId;
-    }
-
-    public void setOrderTypeId(Integer orderTypeId) {
-        this.orderTypeId = orderTypeId;
-    }
-
-    public BigDecimal getStartPrice() {
-        return startPrice;
-    }
-
-    public void setStartPrice(BigDecimal startPrice) {
-        this.startPrice = startPrice;
-    }
-
-    public BigDecimal getDeliveryPrice() {
-        return deliveryPrice;
-    }
-
-    public void setDeliveryPrice(BigDecimal deliveryPrice) {
-        this.deliveryPrice = deliveryPrice;
-    }
-
-    public String getRemarks() {
-        return remarks;
-    }
-
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
-    }
+    // Standard Getters and Setters
+    public String getBusinessName() { return businessName; }
+    public void setBusinessName(String businessName) { this.businessName = businessName; }
+    public String getBusinessAddress() { return businessAddress; }
+    public void setBusinessAddress(String businessAddress) { this.businessAddress = businessAddress; }
+    public String getBusinessExplain() { return businessExplain; }
+    public void setBusinessExplain(String businessExplain) { this.businessExplain = businessExplain; }
+    public String getBusinessImg() { return businessImg; }
+    public void setBusinessImg(String businessImg) { this.businessImg = businessImg; }
+    public Integer getOrderTypeId() { return orderTypeId; }
+    public void setOrderTypeId(Integer orderTypeId) { this.orderTypeId = orderTypeId; }
+    public BigDecimal getStartPrice() { return startPrice; }
+    public void setStartPrice(BigDecimal startPrice) { this.startPrice = startPrice; }
+    public BigDecimal getDeliveryPrice() { return deliveryPrice; }
+    public void setDeliveryPrice(BigDecimal deliveryPrice) { this.deliveryPrice = deliveryPrice; }
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
 }

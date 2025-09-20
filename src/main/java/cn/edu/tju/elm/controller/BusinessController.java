@@ -23,7 +23,6 @@ public class BusinessController {
         return HttpResult.success(businesses);
     }
 
-    // 已修正: 接收一个通用的 Map 来避免因 body 格式问题导致的反序列化错误
     @PostMapping
     public HttpResult<Business> addBusiness(@RequestBody Map<String, Object> payload) {
         Business newBusiness = businessService.addBusiness(payload);
@@ -40,9 +39,10 @@ public class BusinessController {
         }
     }
 
+    // ★ FIXED: Changed @RequestBody from Business to Map<String, Object>
     @PutMapping("/{id}")
-    public HttpResult<Business> updateBusiness(@PathVariable Long id, @RequestBody Business business) {
-        Business updatedBusiness = businessService.updateBusiness(id, business);
+    public HttpResult<Business> updateBusiness(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+        Business updatedBusiness = businessService.updateBusiness(id, payload);
         if (updatedBusiness != null) {
             return HttpResult.success(updatedBusiness);
         } else {
@@ -50,23 +50,5 @@ public class BusinessController {
         }
     }
 
-    @DeleteMapping("/{id}")
-    public HttpResult<Business> deleteBusiness(@PathVariable Long id) {
-        Business deletedBusiness = businessService.deleteBusiness(id);
-        if (deletedBusiness != null) {
-            return HttpResult.success(deletedBusiness);
-        } else {
-            return HttpResult.failure(ResultCodeEnum.NOT_FOUND, "Business not found");
-        }
-    }
 
-    @PatchMapping("/{id}")
-    public HttpResult<Business> patchBusiness(@PathVariable Long id, @RequestBody Business business) {
-        Business patchedBusiness = businessService.patchBusiness(id, business);
-        if (patchedBusiness != null) {
-            return HttpResult.success(patchedBusiness);
-        } else {
-            return HttpResult.failure(ResultCodeEnum.NOT_FOUND, "Business not found");
-        }
-    }
 }

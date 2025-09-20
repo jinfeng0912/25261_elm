@@ -24,6 +24,7 @@ public class BusinessService {
     private EntityManager entityManager;
 
     public Business addBusiness(Map<String, Object> payload) {
+        // ... (addBusiness logic is correct, no changes needed)
         Business business = new Business();
         business.setBusinessName((String) payload.get("businessName"));
         business.setBusinessAddress((String) payload.get("businessAddress"));
@@ -65,12 +66,13 @@ public class BusinessService {
         return null;
     }
 
+    // ★ FIXED: Changed findAll() to the new method to filter out deleted businesses.
     public List<Business> getAllBusinesses() {
-        return businessRepository.findAll();
+        return businessRepository.findAllByDeletedFalse();
     }
 
-    // ★ FIXED: Rewrote the entire method to manually map fields from a Map
     public Business updateBusiness(Long id, Map<String, Object> payload) {
+        // ... (updateBusiness logic is correct, no changes needed)
         Optional<Business> existingBusinessOpt = businessRepository.findById(id);
         if (existingBusinessOpt.isPresent() && !existingBusinessOpt.get().getDeleted()) {
             Business existingBusiness = existingBusinessOpt.get();

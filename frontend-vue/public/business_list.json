@@ -1,0 +1,52 @@
+[
+    {
+        "businessId":100,
+        "businessImg": "/images/sj01.png",
+        "quantity": 10,
+        "businessName": "老王小店",
+        "starPrice": 20,
+        "deliveryPrice": 5,
+        "businessExplain": "老王小店",
+        "typeId":1
+    },
+    {
+        "businessId":200,
+        "businessImg": "/images/sj02.png",
+        "quantity": 10,
+        "businessName": "肯德基",
+        "starPrice": 20,
+        "deliveryPrice": 5,
+        "businessExplain": "肯德基",
+        "typeId":1
+    },
+    {
+        "businessId":300,
+        "businessImg": "/images/sj03.png",
+        "quantity": 10,
+        "businessName": "麦当劳",
+        "starPrice": 20,
+        "deliveryPrice": 5,
+        "businessExplain": "麦当劳",
+        "typeId":2
+    },
+    {
+        "businessId":400,
+        "businessImg": "/images/sj04.png",
+        "quantity": 10,
+        "businessName": "老胖烧烤",
+        "starPrice": 20,
+        "deliveryPrice": 5,
+        "businessExplain": "老胖烧烤",
+        "typeId":3
+    },
+    {
+        "businessId":500,
+        "businessImg": "/images/sj05.png",
+        "quantity": 10,
+        "businessName": "元盛居火锅",
+        "starPrice": 20,
+        "deliveryPrice": 5,
+        "businessExplain": "元盛居火锅",
+        "typeId":4
+    }
+]

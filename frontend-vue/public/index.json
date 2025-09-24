@@ -1,0 +1,76 @@
+[
+    {
+        "bussionName":"华莱士(新乡牧野店)",
+        "start": 4,
+        "score": 3.6,
+        "address": "新乡市牧野区新乡大道与西三环交叉口北侧",
+        "startPrice": "20",
+        "runPrice": "5",
+        "distance": "1.5km",
+        "time": "30分钟",
+        "img": "/images/sj03.png",
+        "saleNumber": 765,
+        "remark":"各种难吃的面食",
+        "activityList":[
+            {
+                "state":"1",
+                "name":"饿了么新用户首单立减9元",
+                "num":"2"
+            },{
+                "state":"0",
+                "name":"特价商品5元起",
+                "num":"0"
+            }
+        ]
+
+    },
+    {
+        "bussionName":"华莱士(新乡牧野店)123",
+        "start": 3,
+        "score": 3.6,
+        "address": "新乡市牧野区新乡大道与西三环交叉口北侧",
+        "startPrice": "20",
+        "runPrice": "1",
+        "distance": "1.5km",
+        "time": "34分钟",
+        "img": "/images/sj05.png",
+        "saleNumber": 765,
+        "remark":"各种难吃的面食",
+        "activityList":[
+            {
+                "state":"1",
+                "name":"饿了么新用户首单立减9元",
+                "num":"2"
+            },{
+                "state":"0",
+                "name":"特价商品5元起",
+                "num":"0"
+            }
+        ]
+
+    },{
+        "bussionName":"华莱士(新乡牧野店)",
+        "start": 2,
+        "score": 3.6,
+        "address": "新乡市牧野区新乡大道与西三环交叉口北侧",
+        "startPrice": "20",
+        "runPrice": "5",
+        "distance": "1.5km",
+        "time": "30分钟",
+        "img": "/images/sj04.png",
+        "saleNumber": 765,
+        "remark":"各种难吃的面食",
+        "activityList":[
+            {
+                "state":"1",
+                "name":"饿了么新用户首单立减9元",
+                "num":"2"
+            },{
+                "state":"0",
+                "name":"特价商品5元起",
+                "num":"0"
+            }
+        ]
+
+    }
+]

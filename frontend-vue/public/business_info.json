@@ -1,0 +1,90 @@
+[
+    {
+        "businessId":100,
+        "businessImg":"images/sj01.png",
+        "businessName":"老王小店",
+        "startPrice": 20,
+        "deliveryPrice": 5,
+        "businessExplain": "老王小店",
+        "foodList":[
+            {
+                "foodId":1,
+                "foodImg":"/images/sp01.png",
+                "foodName":"米饭",
+                "foodExplain": "米饭有什么描述的",
+                "quantity":1,
+                "foodPrice": 6
+            },{
+                "foodId":2,
+                "foodImg":"/images/sp02.png",
+                "foodName":"卤肉饭",
+                "foodExplain": "卤肉饭有什么描述的",
+                "quantity":1,
+                "foodPrice": 5
+            }
+        ]
+    },{
+        "businessId":200,
+        "businessImg":"images/sj02.png",
+        "businessName":"肯德基",
+        "startPrice": 20,
+        "deliveryPrice": 5,
+        "businessExplain": "肯德基",
+        "foodList":[
+            {
+                "foodId":3,
+                "foodImg":"/images/sp01.png",
+                "foodName":"鸡块",
+                "foodExplain": "鸡块有什么描述的",
+                "quantity":1,
+                "foodPrice": 6
+            },{
+                "foodId":4,
+                "foodImg":"/images/sp02.png",
+                "foodName":"圣代",
+                "foodExplain": "圣代有什么描述的",
+                "quantity":1,
+                "foodPrice": 5
+            },{
+                "foodId":5,
+                "foodImg":"/images/sp03.png",
+                "foodName":"圣代123",
+                "foodExplain": "圣代有什么描述的",
+                "quantity":1,
+                "foodPrice": 5
+            }
+        ]
+    },{
+        "businessId":300,
+        "businessImg":"images/sj04.png",
+        "businessName":"老胖烧烤",
+        "startPrice": 20,
+        "deliveryPrice": 5,
+        "businessExplain": "肯德基",
+        "foodList":[
+            {
+                "foodId":6,
+                "foodImg":"/images/sp03.png",
+                "foodName":"羊肉",
+                "foodExplain": "羊肉不爱吃",
+                "quantity":1,
+                "foodPrice": 6
+            },{
+                "foodId":7,
+                "foodImg":"/images/sp04.png",
+                "foodName":"猪肉",
+                "foodExplain": "猪肉有什么描述的",
+                "quantity":1,
+                "foodPrice": 5
+            },{
+                "foodId":8,
+                "foodImg":"/images/sp03.png",
+                "foodName":"牛肉",
+                "foodExplain": "牛肉有什么描述的",
+                "quantity":1,
+                "foodPrice": 5
+            }
+        ]
+    }
+    
+]

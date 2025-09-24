@@ -1,0 +1,20 @@
+[
+    {
+        "userId": "155841233211",
+        "password": "123456",
+        "userName": "张三",
+        "userSex": 1
+    },
+    {
+        "userId": "177898965651",
+        "password": "789",
+        "userName": "张三",
+        "userSex": 1
+    },
+    {
+        "userId": "15584123456",
+        "password": "123456",
+        "userName": "888888",
+        "userSex": 1
+    }
+]

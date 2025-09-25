@@ -7,7 +7,7 @@ import cn.edu.tju.elm.model.Business;
 import cn.edu.tju.elm.service.BusinessService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import io.swagger.v3.oas.annotations.Operation;
 
 import java.util.List;
@@ -89,6 +89,7 @@ public class BusinessController {
     // jinfeng 新增/my这个接口
     @GetMapping("/my")
     @Operation(summary = "获取我的商家信息", method = "GET")
+    @PreAuthorize("hasAuthority('BUSINESS')")
     public HttpResult<List<Business>> getMyBusiness() {
         try {
             var currentUser = userService.getUserWithAuthorities();

@@ -32,20 +32,31 @@
       >
         <span>数据管理</span>
       </div>
+      
     </div>
 
-    <div v-if="currentTab === 'order'" class="content">
+    <!-- 加载中或无权限提示 -->
+    <div v-if="isLoading" class="loading-message">加载商家信息...</div>
+    <div v-else-if="!business" class="error-message">
+      <p>权限不足或无关联店铺。</p>
+      <button @click="logout">重新登录</button>
+      <p v-if="errorMsg">{{ errorMsg }}</p>
+    </div>
+
+    <div v-if="currentTab === 'order' && business" class="content">
       </div>
 
-    <div v-if="currentTab === 'food'" class="content">
+    <div v-if="currentTab === 'food' && business" class="content">
       <div class="section-title">
-        <h3>食品管理</h3>
+        <h3>食品管理 (店铺: {{ business.businessName }})</h3>
         <button class="add-btn" @click="openAddFoodModal">
           <i class="fa fa-plus"></i> 新增食品
         </button>
       </div>
 
-      <div class="food-list">
+      <div v-if="foodLoading" class="loading-message">加载食品...</div>
+      <div v-else-if="foodList.length === 0" class="error-message">暂无食品</div>
+      <div else class="food-list">
         <div class="list-header">
           <div class="col-id">ID</div>
           <div class="col-name">食品名称</div>
@@ -54,7 +65,7 @@
           <div class="col-action">操作</div>
         </div>
         
-        <div class="list-item" v-for="food in foodList" :key="food.id">
+         <div class="list-item" v-for="food in foodList" :key="food.id">
           <div class="col-id">{{ food.id }}</div>
           <div class="col-name">{{ food.foodName }}</div>
           <div class="col-explain">{{ food.foodExplain }}</div>
@@ -86,12 +97,12 @@
           
           <div class="form-group">
             <label>食品价格：</label>
-            <input type="number" v-model="currentFood.foodPrice" placeholder="请输入食品价格" />
+            <input type="number" v-model="currentFood.foodPrice" step="0.01" placeholder="请输入食品价格" />
           </div>
           
           <div class="modal-buttons">
             <button class="cancel-btn" @click="closeFoodModal">取消</button>
-            <button class="confirm-btn" @click="saveFood">
+            <button class="confirm-btn" @click="saveFood" :disabled="!currentFood.foodName || !currentFood.foodPrice">
               {{ isEditMode ? '保存' : '新增' }}
             </button>
           </div>
@@ -99,8 +110,12 @@
       </div>
     </div>
 
-    <div v-if="currentTab === 'data'" class="content">
+    <div v-if="currentTab === 'data' && business" class="content">
+      <!-- 数据内容... (你的原代码) -->
+      <div class="stats-cards">
+        <!-- ... 统计卡片 ... -->
       </div>
+    </div>
   </div>
 </template>
 
@@ -111,9 +126,11 @@ export default {
   data() {
     return {
       adminName: '商家管理员',
-      currentTab: 'food', // 默认显示食品管理
-      business: null, // 存放商家信息
-      isLoading: true, // 新增：用于表示是否正在加载初始数据
+      currentTab: 'food',
+      business: null,
+      isLoading: true,  // 加载商家
+      foodLoading: false,  // 加载食品
+      errorMsg: '',  // 错误提示
 
       // 订单管理相关
       orderList: [
@@ -169,7 +186,7 @@ export default {
       },
 
       // 食品管理相关
-      foodList: [],
+      foodList: [],  // 真实食品列表
       showFoodModal: false,
       isEditMode: false,
       currentFood: {
@@ -207,73 +224,103 @@ export default {
         { date: '周六', count: 48 },
         { date: '周日', count: 40 }
       ]
+      
     }
+    //isDev: true  // 开发模式开关，生产设 false
   },
 
-  mounted() {
-    this.checkAdminAuth();
-    this.loadBusinessInfo();
+mounted() {
+    this.initialize();
   },
   methods: {
-    checkAdminAuth() {
-      // 可以在这里做一些权限验证，比如检查localStorage中是否有token
-      this.adminName = '商家管理员';
+    async initialize() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('您尚未登录，请先登录！');
+        this.$router.push('/login');
+        return;
+      }
+
+      // 关键：设置 axios header 携带 token
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('已设置 token header:', token.substring(0, 20) + '...');
+
+      this.adminName = '商家管理员';  // 或从 localStorage userInfo 取
+      await this.loadBusinessInfo();
     },
-    
-    //jinfeng 改的，用来开发，应付一下商家不能登陆情况
-     async loadBusinessInfo() {
+
+    async loadBusinessInfo() {
+      this.isLoading = true;
+      this.errorMsg = '';
       try {
+        console.log('调用 /api/businesses/my，带 token...');
         const response = await axios.get('/api/businesses/my');
-        if (response.data.code === 200 && response.data.data.length > 0) {
-          // 正常流程：如果后端返回了商家数据，就使用它
-          this.business = response.data.data[0];
-          await this.loadFoods();
-          console.log("成功加载真实的商家信息:", this.business);
+        console.log('响应完整:', response.data);  // 调试：打印全响应
+
+        // 修改：检查 success true 和 code 'OK' (匹配你的 HttpResult)
+        if (response.data.success === true && response.data.code === 'OK') {
+          const businesses = response.data.data || [];
+          console.log('商家列表:', businesses);  // 调试：看 Array(1)
+
+          if (businesses.length > 0) {
+            this.business = businesses[0];  // 取第一个店铺
+            console.log("成功加载商家:", this.business);  // 调试：店铺详情
+            await this.loadFoods();  // 加载食品
+            this.isLoading = false;
+          } else {
+            this.errorMsg = '当前账号无关联商家，请创建店铺。';  // 友好提示，不 throw
+            console.warn('无店铺数据');
+            this.isLoading = false;
+          }
         } else {
-          // 获取成功，但该用户无商家数据时的临时逻辑
-          console.warn('当前用户没有关联的商家，将使用临时测试数据。');
-          this.useMockBusinessForTesting();
+          // 非 OK 响应
+          throw new Error(response.data.message || '响应格式异常');
         }
       } catch (error) {
-        // API请求失败时的临时逻辑
-        console.error('加载商家信息API失败，将使用临时测试数据。', error);
-        this.useMockBusinessForTesting();
+        console.error('加载商家信息API失败:', error);
+        this.errorMsg = '加载失败: ' + (error.response?.data?.message || error.message);
+        this.isLoading = false;
+        // 不立即 logout：显示 errorMsg，让用户手动退出
+        alert(this.errorMsg + '，建议重新登录。');
       }
     },
 
-    // jinfeng 新增这个方法，用于创建测试数据 ++
-    async useMockBusinessForTesting() {
-      // 这里我们创建了一个假的商家对象，让页面可以继续渲染和操作。
-      // id: 1 是一个假设值，你可以根据你的数据库情况修改。
-      this.business = { id: 1, businessName: '我的测试店铺' };
-      
-      // 警告：为了让“新增/修改食品”功能最终能成功保存到数据库，
-      // 你需要确保数据库的 business 表里真的有一个 id 为 1 的商家，
-      // 并且这个商家的 business_owner_id 指向你当前登录的测试用户。
-      
-      console.log('已启用临时商家数据进行测试:', this.business);
-      
-      // 使用模拟的商家信息去加载食品列表
-      // 注意：/api/foods/my 接口仍然会去后台查询真实数据
-      // 如果你的测试用户没有任何食品，列表会是空的，这是正常的。
-      await this.loadFoods();
-    },
-    
-    // 加载食品列表
+    // 增强：加全日志，处理空列表
     async loadFoods() {
-      if (!this.business) return;
+      if (!this.business) {
+        console.warn('7. 无商家，跳过 loadFoods');
+        this.foodLoading = false;
+        return;
+      }
+
+      this.foodLoading = true;
+      console.log('8. 开始调用 /api/foods/my (商家ID:', this.business.id, ')');  // 日志8
       try {
-        const response = await axios.get('/api/foods/my');
-        if (response.data.code === 200) {
-          this.foodList = response.data.data;
+        const response = await axios.get('/api/foods/my');  // 带 token
+        console.log('9. 食品响应:', response.data);  // 日志9
+
+        if (response.data.success === true && response.data.code === 'OK') {
+          this.foodList = response.data.data || [];
+          console.log('10. 食品加载成功:', this.foodList.length, '个');  // 日志10
+          // 如果空，UI 会提示 "暂无食品"
         } else {
-          alert('加载食品列表失败: ' + response.data.message);
+          console.warn('11. 食品响应非 OK:', response.data);
+          throw new Error(response.data.message || '格式异常');
         }
       } catch (error) {
-        console.error('加载食品列表失败', error);
-        alert('加载食品列表失败');
+        console.error('12. 食品加载失败:', error);  // 关键日志：如果错误，这里打印
+        console.error('响应状态:', error.response?.status);
+        console.error('响应数据:', error.response?.data);
+        alert('食品列表加载失败: ' + (error.response?.data?.message || error.message));
+        this.foodList = [];  // 清空，避免旧数据
+      } finally {
+        this.foodLoading = false;
+        console.log('13. loadFoods 结束，foodList.length:', this.foodList.length);  // 日志13
       }
     },
+
+    
+    
 
     // 打开新增模态框
     openAddFoodModal() {
@@ -299,9 +346,10 @@ export default {
       this.showFoodModal = false;
     },
 
-    // 保存食品（新增或更新）
+    
+    // 修复 saveFood：统一响应检查
     async saveFood() {
-        if (!this.business) {
+      if (!this.business) {
         alert("商家信息未加载，无法保存食品！");
         return;
       }
@@ -309,48 +357,47 @@ export default {
         alert('食品名称和价格不能为空');
         return;
       }
-      
+
       try {
         let response;
         if (this.isEditMode) {
-          // 编辑模式
           response = await axios.put(`/api/foods/${this.currentFood.id}`, this.currentFood);
         } else {
-          // 新增模式
           const newFood = {
-              ...this.currentFood,
-              business: { id: this.business.id }
-          }
+            ...this.currentFood,
+            business: { id: this.business.id }  // 确保
+          };
+          console.log('14. 保存食品 payload:', newFood);  // 调试
           response = await axios.post('/api/foods', newFood);
         }
 
-        if (response.data.code === 200) {
+        if (response.data.success === true && response.data.code === 'OK') {
           alert(this.isEditMode ? '更新成功' : '新增成功');
           this.closeFoodModal();
-          this.loadFoods(); // 刷新列表
+          await this.loadFoods();  // 刷新
         } else {
-          alert('操作失败: ' + response.data.message);
+          alert('操作失败: ' + (response.data.message || '响应异常'));
         }
       } catch (error) {
-        console.error('保存食品失败', error);
-        alert('操作失败: ' + error.response.data.message);
+        console.error('15. 保存食品失败:', error);
+        alert('操作失败: ' + (error.response?.data?.message || error.message));
       }
     },
 
-    // 删除食品
+    // deleteFood 类似修复...
     async deleteFood(foodId) {
       if (confirm('确定要删除这个食品吗？')) {
         try {
           const response = await axios.delete(`/api/foods/${foodId}`);
-          if (response.data.code === 200) {
+          if (response.data.success === true && response.data.code === 'OK') {
             alert('删除成功');
-            this.loadFoods(); // 刷新列表
+            await this.loadFoods();
           } else {
-            alert('删除失败: ' + response.data.message);
+            alert('删除失败: ' + (response.data.message || '响应异常'));
           }
         } catch (error) {
-          console.error('删除食品失败', error);
-          alert('删除失败');
+          console.error('删除失败:', error);
+          alert('删除失败: ' + (error.response?.data?.message || error.message));
         }
       }
     },
@@ -369,10 +416,21 @@ export default {
     },
 
     switchTab(tab) {
-      this.currentTab = tab;
+        this.currentTab = tab;
+      if (!this.business && tab !== 'data') {
+        alert('请先加载店铺');
+        return;
+      }
+      if (tab === 'food' && this.foodList.length === 0 && this.business) {
+        console.log('16. 切换到 food tab，懒加载食品');  // 日志16
+        this.loadFoods();  // 确保加载
+      }
+      
     },
+
     logout() {
-      // 退出登录逻辑
+      localStorage.clear();  // 清 token
+      axios.defaults.headers.common['Authorization'] = null;  // 清 header
       this.$router.push('/login');
     }
   }

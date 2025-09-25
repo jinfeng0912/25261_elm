@@ -9,8 +9,7 @@
       </div>
     </header>
   
-      <!-- 刮刮乐下拉界面 -->
-    <div :class="['scratch-dropdown', { 'active': isDropdownOpen }]">
+      <div :class="['scratch-dropdown', { 'active': isDropdownOpen }]">
       <div class="scratch-container">
         <div class="scratch-header">
           <i class="fa fa-gift gift-icon"></i>
@@ -25,7 +24,6 @@
           </div>
           
           <div class="scratch-area" ref="scratchArea">
-            <!-- 背景奖励显示 -->
             <div class="reward-display">
               <div v-if="showResult" class="reward-content">
                 <div class="reward-amount">
@@ -40,7 +38,6 @@
               </div>
             </div>
             
-            <!-- 刮刮层画布 -->
             <canvas
               ref="scratchCanvas"
               class="scratch-canvas"
@@ -54,7 +51,6 @@
             ></canvas>
           </div>
           
-          <!-- 操作按钮 -->
           <div v-if="showResult" class="action-buttons">
             <button v-if="couponAmount > 0" @click="goToPayment" class="use-coupon-btn">
               立即使用红包购买会员
@@ -67,7 +63,6 @@
       </div>
     </div>
 
-    <!-- 支付页面 -->
     <div v-if="showPayment" class="payment-overlay">
       <div class="payment-container">
         <header class="payment-header">
@@ -76,7 +71,6 @@
         </header>
 
         <div class="payment-content">
-          <!-- 订单信息 -->
           <div class="info-section">
             <h3>订单信息</h3>
             <div class="order-info">
@@ -85,7 +79,6 @@
             </div>
           </div>
 
-          <!-- 会员项目 -->
           <div class="info-section">
             <h3>会员项目</h3>
             <div class="member-info">
@@ -129,7 +122,6 @@
             </div>
           </div>
 
-          <!-- 支付按钮 -->
           <div class="payment-buttons">
             <button @click="handlePayment" class="confirm-pay-btn">
               确认支付 ¥{{ (9.90 - couponAmount).toFixed(2) }}
@@ -194,8 +186,6 @@
         </li>
       </ul>
   
-
-  
       <div class="supermember" @click="toSuperMember" style="cursor: pointer;">
           <div class="left">
             <img src="../assets/super_member.png" />
@@ -205,14 +195,12 @@
           <div class="right">立即开通 &gt;</div>
       </div>
   
-      <!-- 推荐商家 -->
-        <div class="recommend">
+      <div class="recommend">
             <div class="recommend-line"></div>
             <p>推荐商家</p>
             <div class="recommend-line"></div>
         </div>
 
-        <!-- 推荐方式（修改为可点击的排序） -->
         <ul class="recommendtype">
             <li 
                 :class="{ active: currentSort === 'rating' }"
@@ -235,14 +223,13 @@
               <li @click="goToFilter">筛选<i class="fa fa-filter"></i></li>
         </ul>
 
-        <!-- 推荐商家列表（修改为动态渲染） -->
         <ul class="business">
             <li 
                 v-for="business in displayedBusinessList" 
-                :key="business.businessId"
-                @click="goToBusiness(business.businessId)"
+                :key="business.id"
+                @click="goToBusiness(business.id)"
             >
-                <img :src="getBusinessImage(business.businessId)">
+                <img :src="business.businessImg">
                 <div class="business-info">
                     <div class="business-info-h">
                         <h3>{{ business.businessName }}</h3>
@@ -262,7 +249,7 @@
                         </div>
                     </div>
                     <div class="business-info-delivery">
-                        <p>&#165;{{ business.starPrice }}起送 | &#165;{{ business.deliveryPrice }}配送</p>
+                        <p>&#165;{{ business.startPrice }}起送 | &#165;{{ business.deliveryPrice }}配送</p>
                         <p>{{ business.distance }}km | {{ getDeliveryTime(business.distance) }}分钟</p>
                     </div>
                     <div class="business-info-explain">
@@ -287,30 +274,26 @@
                 </div>
             </li>
         </ul>
-        <!-- 底部菜单 -->
         <Footer></Footer>
     </div>
 </template>
   
 <script setup>
   import Footer from "../components/Footer.vue";
-  import { ref, onMounted, onUnmounted, inject, nextTick, computed } from "vue"; // 添加 computed 导入
+  import { ref, onMounted, onUnmounted, inject, nextTick, computed } from "vue";
   import { useRouter } from "vue-router";
-  import sj01 from '@/assets/sj01.png'
-  import sj02 from '@/assets/sj02.png'
-  import sj03 from '@/assets/sj03.png'
-  import sj04 from '@/assets/sj04.png'
-  import sj05 from '@/assets/sj05.png'
-  import sj06 from '@/assets/sj06.png'
-  import sj07 from '@/assets/sj07.png'
+  // import sj01 from '@/assets/sj01.png'
+  // import sj02 from '@/assets/sj02.png'
+  // import sj03 from '@/assets/sj03.png'
+  // import sj04 from '@/assets/sj04.png'
+  // import sj05 from '@/assets/sj05.png'
+  // import sj06 from '@/assets/sj06.png'
+  // import sj07 from '@/assets/sj07.png'
 
 const router = useRouter();
 const axios = inject('axios');
 const fixedBox = ref(null);
-
-// 原有的业务逻辑变量
-const businessList = ref([]);
-const sortType = ref('rating'); 
+const businessData = ref([]); 
 
 // 刮刮乐相关变量
 const isDropdownOpen = ref(false);
@@ -335,116 +318,49 @@ const goToSearch = () => {
   router.push('/search')
 }
 
-const toPackageDeals = () => {
-  console.log('跳转到品质套餐页面');
-  router.push('/packageDeals');
+const fetchBusinessData = async () => {
+  try {
+    console.log('开始获取商家数据:');
+    const response = await axios.get('/api/businesses');
+    if (response.data && response.data.data) { // <-- 检查并使用 response.data.data
+      businessData.value = response.data.data; // <-- 只取 data 数组部分
+    } else {
+      businessData.value = []; // 如果没有数据，确保它是个空数组
+    }
+    console.log('获取商家数据成功:', response.data);
+  } catch (error) {
+    console.error('获取商家数据时出错:', error);
+    businessData.value = []; // 出错时也确保它是个空数组
+  }
 };
 
-// 硬编码的商家数据
-const businessData = ref([
-  {
-    businessId: 10001,
-    businessName: '万家饺子（软件园E18店）',
-    businessExplain: '各种饺子炒菜',
-    starPrice: 15,
-    deliveryPrice: 3,
-    distance: 3.22,
-    monthlySales: 345,
-    rating: 3.9
-  },
-  {
-    businessId: 10002,
-    businessName: '小锅饭豆腐馆（全运店）',
-    businessExplain: '特色美食',
-    starPrice: 15,
-    deliveryPrice: 3,
-    distance: 4.21,
-    monthlySales: 233,
-    rating: 3.6
-  },
-  {
-    businessId: 10003,
-    businessName: '麦当劳麦乐送（全运路店）',
-    businessExplain: '汉堡薯条',
-    starPrice: 15,
-    deliveryPrice: 3,
-    distance: 2.10,
-    monthlySales: 562,
-    rating: 4.8
-  },
-  {
-    businessId: 10004,
-    businessName: '米村拌饭（浑南店）',
-    businessExplain: '各种炒菜拌饭',
-    starPrice: 15,
-    deliveryPrice: 3,
-    distance: 4.11,
-    monthlySales: 145,
-    rating: 3.1
-  },
-  {
-    businessId: 10005,
-    businessName: '申记串道（中海康城店）',
-    businessExplain: '烤串炸串',
-    starPrice: 15,
-    deliveryPrice: 3,
-    distance: 2.15,
-    monthlySales: 300,
-    rating: 3.0
-  },
-  {
-    businessId: 10006,
-    businessName: '半亩良田排骨米饭',
-    businessExplain: '排骨米饭套餐',
-    starPrice: 15,
-    deliveryPrice: 3,
-    distance: 5.25,
-    monthlySales: 410,
-    rating: 4.0
-  },
-  {
-    businessId: 10007,
-    businessName: '茶兮鲜果饮品（国际软件园店）',
-    businessExplain: '甜品饮品',
-    starPrice: 15,
-    deliveryPrice: 3,
-    distance: 1.50,
-    monthlySales: 500,
-    rating: 4.2
-  }
-]);
-
-// 计算属性：根据排序类型返回排序后的商家列表
+// 计算属性：根据排序类型返回排序后的商家列表 (这段代码无需修改)
 const displayedBusinessList = computed(() => {
   if (!businessData.value || businessData.value.length === 0) {
     return [];
   }
   
-  const sortedList = [...businessData.value]; // 创建副本避免修改原数组
+  const sortedList = [...businessData.value];
   
   console.log('=== 开始排序 ===');
   console.log('排序类型:', currentSort.value);
   
   switch (currentSort.value) {
     case 'distance':
-      // 按距离排序（升序）
       sortedList.sort((a, b) => a.distance - b.distance);
       console.log('按距离排序完成');
       break;
     case 'sales':
-      // 按销量排序（降序）
       sortedList.sort((a, b) => b.monthlySales - a.monthlySales);
       console.log('按销量排序完成');
       break;
     case 'rating':
     default:
-      // 按评分排序（降序）
       sortedList.sort((a, b) => b.rating - a.rating);
       console.log('按评分排序完成');
       break;
   }
   
-  // 打印前3个商家的排序信息
   sortedList.slice(0, 3).forEach((business, index) => {
     console.log(`排序结果[${index + 1}]: ${business.businessName} - 距离:${business.distance}km 销量:${business.monthlySales} 评分:${business.rating}`);
   });
@@ -475,7 +391,6 @@ const initCanvas = () => {
   canvas.width = rect.width;
   canvas.height = rect.height;
   
-  // 绘制银色刮刮层
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
   gradient.addColorStop(0, '#C0C0C0');
   gradient.addColorStop(0.5, '#E6E6E6');
@@ -484,7 +399,6 @@ const initCanvas = () => {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // 添加刮刮乐文字
   ctx.fillStyle = '#666';
   ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
@@ -504,13 +418,11 @@ const handleScratch = (e) => {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   
-  // 擦除效果
   ctx.globalCompositeOperation = 'destination-out';
   ctx.beginPath();
   ctx.arc(x, y, 20, 0, 2 * Math.PI);
   ctx.fill();
   
-  // 计算刮开进度
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const pixels = imageData.data;
   let transparentPixels = 0;
@@ -522,15 +434,15 @@ const handleScratch = (e) => {
   const progress = (transparentPixels / (pixels.length / 4)) * 100;
   scratchProgress.value = progress;
   
-  // 当刮开超过30%时显示结果
   if (progress > 30 && !showResult.value) {
-    const randomAmount = Math.floor(Math.random() * 4); // 0-3元
+    const randomAmount = Math.floor(Math.random() * 4);
     couponAmount.value = randomAmount;
     showResult.value = true;
     isScratching.value = false;
   }
 };
 
+// 其他方法保持不变...
 // 开始刮奖
 const startScratch = (e) => {
   if (showResult.value) return;
@@ -648,6 +560,8 @@ onMounted(() => {
     }
   };
   
+  fetchBusinessData();
+  
   console.log('首页初始化完成，默认按评分排序');
 });
 
@@ -656,13 +570,13 @@ onUnmounted(() => {
 });
 
 // 方法定义
-const getBusinessImage = (businessId) => {
+/*const getBusinessImage = (businessId) => {
   const imageMap = {
     10001: sj01, 10002: sj02, 10003: sj03, 10004: sj04,
     10005: sj05, 10006: sj06, 10007: sj07
   };
   return imageMap[businessId] || sj01;
-}
+}*/
 
 const getDeliveryTime = (distance) => {
   if (!distance || distance <= 0) return 20;
@@ -715,7 +629,6 @@ const goToFilter = () => {
 </script>
 
 <style scoped>
-  /* 现有样式保持不变，添加新的排序激活状态样式 */
   
   /****************** 总容器 ******************/
   .wrapper {
@@ -784,71 +697,6 @@ const goToFilter = () => {
     margin-right: 1vw;
   }
   
-   /**套餐**/
-  .wrapper .banner {
-  width: 95%;
-  margin: 0 auto;
-  height: 29vw;
-  background-image: url(../assets/index_banner.png);
-  background-repeat: no-repeat;
-  background-size: cover;
-  box-sizing: border-box;
-  padding: 2vw 6vw;
-  
-  /* 新增的可点击样式 */
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border-radius: 2vw;
-  position: relative;
-  overflow: hidden;
-}
-
-.wrapper .banner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0);
-  transition: background 0.2s ease;
-}
-
-.wrapper .banner:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2vw 4vw rgba(0, 0, 0, 0.1);
-}
-
-.wrapper .banner:hover::before {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.wrapper .banner:active {
-  transform: translateY(0);
-}
-
-.wrapper .banner h3 {
-  font-size: 4.2vw;
-  margin-bottom: 1.2vw;
-  position: relative;
-  z-index: 1;
-}
-
-.wrapper .banner p {
-  font-size: 3.4vw;
-  color: #666;
-  margin-bottom: 2.4vw;
-  position: relative;
-  z-index: 1;
-}
-
-.wrapper .banner a {
-  font-size: 3vw;
-  color: #c79060;
-  font-weight: 700;
-  position: relative;
-  z-index: 1;
-  text-decoration: none;
-}
-
   /****************** 点餐分类部分 ******************/
 .wrapper .foodtype {
   width: 100%;
@@ -857,17 +705,14 @@ const goToFilter = () => {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  /*要使用align-content。10个子元素将自动换行为两行，而且两行作为一个整体垂直居中*/
   align-content: center;
 }
 
 .wrapper .foodtype li {
-  /*一共10个子元素，通过计算，子元素宽度在16.7 ~ 20 之间，才能保证换两行*/
   width: 18vw;
   height: 20vw;
 
   display: flex;
-  /*弹性盒子主轴方向设为column，然后仍然是垂直水平方向居中*/
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -878,7 +723,6 @@ const goToFilter = () => {
 
 .wrapper .foodtype li img {
   width: 12vw;
-  /*视频讲解时高度设置为12vw，实际上设置为10.3vw更佳*/
   height: 10.3vw;
 }
 
@@ -887,44 +731,8 @@ const goToFilter = () => {
   color: #666;
 }
   
-.wrapper .banner {
-  /**
-         * 设置容器宽度95%，然后水平居中，这样两边留白; 
-         * 这里不能用padding，因为背景图片也会覆盖padding
-         */
-  width: 95%;
-  margin: 0 auto;
-  height: 29vw;
-
-  /*此三个样式组合，可以保证背景图片充满整个容器*/
-  background-image: url(../assets/index_banner.png);
-  background-repeat: no-repeat;
-  background-size: cover;
-
-  box-sizing: border-box;
-  padding: 2vw 6vw;
-}
-
-.wrapper .banner h3 {
-  font-size: 4.2vw;
-  margin-bottom: 1.2vw;
-}
-
-.wrapper .banner p {
-  font-size: 3.4vw;
-  color: #666;
-  margin-bottom: 2.4vw;
-}
-
-.wrapper .banner a {
-  font-size: 3vw;
-  color: #c79060;
-  font-weight: 700;
-}
-
 /****************** 超级会员部分 ******************/
 .wrapper .supermember {
-  /*这里也设置容器宽度95%，不能用padding，因为背景色也会充满padding*/
   width: 95%;
   margin: 0 auto;
   height: 11.5vw;
@@ -1006,7 +814,6 @@ const goToFilter = () => {
     border-radius: 2vw;
   }
 
-  /* 排序激活状态样式 */
   .wrapper .recommendtype li.active {
     color: #0097ff;
     background-color: rgba(0, 151, 255, 0.1);
@@ -1035,7 +842,6 @@ const goToFilter = () => {
     transition: background-color 0.2s ease;
   }
 
-  /* 商家项hover效果 */
   .wrapper .business li:hover {
     background-color: #f9f9f9;
   }
@@ -1222,12 +1028,11 @@ const goToFilter = () => {
     p {
     margin-right: 2vw;
   }
-  /* 让header可点击 */
+
 .wrapper header {
   cursor: pointer;
   user-select: none;
 }
-/* 刮刮乐下拉界面 */
 .scratch-dropdown {
   width: 100%;
   overflow: hidden;
@@ -1386,7 +1191,6 @@ const goToFilter = () => {
   background-color: #555;
 }
 
-/* 支付页面样式 */
 .payment-overlay {
   position: fixed;
   inset: 0;
@@ -1554,7 +1358,6 @@ const goToFilter = () => {
   background-color: #45a049;
 }
 
-/* 响应式调整 */
 @media (max-width: 480px) {
   .scratch-card {
     max-width: 90vw;
@@ -1569,3 +1372,4 @@ const goToFilter = () => {
   }
 }
 </style>
+}

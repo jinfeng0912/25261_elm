@@ -8,6 +8,7 @@ import cn.edu.tju.core.security.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -137,6 +138,7 @@ public class FoodController {
 
     @GetMapping("/my")
     @Operation(summary = "获取我的商品", method = "GET")
+    @PreAuthorize("hasAuthority('BUSINESS')") // 2. 在这里添加注解
     public HttpResult<List<Food>> getMyFoods(){
         try {
             // 获取当前用户

@@ -52,24 +52,26 @@ public class TokenProvider implements InitializingBean {
    }
 
    public String createToken(Authentication authentication, boolean rememberMe) {
-      String authorities = authentication.getAuthorities().stream()
-         .map(GrantedAuthority::getAuthority)
-         .collect(Collectors.joining(","));
+       // 核心修复：在这里手动处理权限，确保与安全检查一致
+       String authorities = authentication.getAuthorities().stream()
+               .map(GrantedAuthority::getAuthority)
+               .map(authority -> authority.startsWith("ROLE_") ? authority.substring(5) : authority) // 移除 "ROLE_" 前缀
+               .collect(Collectors.joining(","));
 
-      long now = (new Date()).getTime();
-      Date validity;
-      if (rememberMe) {
-         validity = new Date(now + this.tokenValidityInMillisecondsForRememberMe);
-      } else {
-         validity = new Date(now + this.tokenValidityInMilliseconds);
-      }
+       long now = (new Date()).getTime();
+       Date validity;
+       if (rememberMe) {
+           validity = new Date(now + this.tokenValidityInMilliseconds);
+       } else {
+           validity = new Date(now + this.tokenValidityInMillisecondsForRememberMe);
+       }
 
-      return Jwts.builder()
-         .setSubject(authentication.getName())
-         .claim(AUTHORITIES_KEY, authorities)
-         .signWith(key, SignatureAlgorithm.HS512)
-         .setExpiration(validity)
-         .compact();
+       return Jwts.builder()
+               .setSubject(authentication.getName())
+               .claim(AUTHORITIES_KEY, authorities)
+               .signWith(SignatureAlgorithm.HS512, key)
+               .setExpiration(validity)
+               .compact();
    }
 
    public Authentication getAuthentication(String token) {

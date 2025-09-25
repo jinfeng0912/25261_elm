@@ -74,8 +74,8 @@ public class WebSecurityConfig {
     private final String[] permitUrlArr = new String[] {
             "/hello",
             "/api/auth",
-            "/api/businesses",
-            "/api/businesses/**",
+            "/api/businesses", 
+            "/api/businesses/{id}",
             "/api/foods",
             "/api/foods/**",
             "/api/orders",
@@ -115,6 +115,8 @@ public class WebSecurityConfig {
                             // 除上面声明的可匿名访问地址，其它所有请求全部需要进行认证
                             // .requestMatchers("/api/person").hasAuthority("USER")
                             // .requestMatchers("/api/hiddenmessage").hasAuthority("ADMIN")
+                            .requestMatchers("/api/businesses/my").hasAnyAuthority("ADMIN", "BUSINESS")
+                            .requestMatchers("/api/foods/my").hasAnyAuthority("ADMIN", "BUSINESS")
                             .anyRequest()
                             .authenticated();
                 })

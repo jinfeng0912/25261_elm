@@ -117,17 +117,49 @@ onMounted(async () => {
 console.log('=== BusinessInfo 页面加载 ===')
 console.log('商家ID:', businessId)
 
+// 使用统一的方法检查登录状态并加载数据
+await checkLoginAndLoadData()
+
+// 监听页面可见性变化，当用户从登录页面返回时重新检查登录状态
+document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+// 页面可见性变化处理
+const handleVisibilityChange = async () => {
+if (!document.hidden) {
+  console.log('页面重新可见，重新检查登录状态')
+  // 检查登录状态是否发生变化
+  const isLoggedIn = localStorage.getItem('isLoggedIn')
+  if (isLoggedIn === 'true' && !user.value) {
+    console.log('检测到登录状态变化，重新加载数据')
+    await checkLoginAndLoadData()
+  }
+}
+}
+
+// 重试加载
+const retryLoad = () => {
+console.log('🔄 用户点击重试按钮')
+error.value = null
+loading.value = true
+// 重新检查登录状态并加载数据
+checkLoginAndLoadData()
+}
+
+// 检查登录状态并加载数据
+const checkLoginAndLoadData = async () => {
 try {
-
-
-  loading.value = true
-  error.value = null
-  
-  // 获取用户信息
-  const userInfo = getSessionStorage("user")
-  if (userInfo) {
-    user.value = userInfo
-    console.log('用户已登录:', user.value.userId)
+  // 检查登录状态
+  const isLoggedIn = localStorage.getItem('isLoggedIn')
+  if (isLoggedIn === 'true') {
+    // 获取用户信息
+    const userInfo = getSessionStorage("user")
+    if (userInfo) {
+      user.value = userInfo
+      console.log('用户已登录:', user.value.userId)
+    } else {
+      console.log('登录状态存在但用户信息缺失')
+    }
   } else {
     console.log('用户未登录')
   }
@@ -144,16 +176,6 @@ try {
 } finally {
   loading.value = false
 }
-})
-
-// 重试加载
-const retryLoad = () => {
-console.log('🔄 用户点击重试按钮')
-error.value = null
-loading.value = true
-// 重新加载数据
-loadBusinessInfo()
-loadFoodList()
 }
 
 // 从后端获取商家信息
@@ -218,7 +240,8 @@ try {
 }
 
 // 2. 如果用户已登录，从后端同步购物车数据
-if (user.value && user.value.userId) {
+const isLoggedIn = localStorage.getItem('isLoggedIn')
+if (isLoggedIn === 'true' && user.value && user.value.userId) {
   try {
     console.log('同步后端购物车数据...')
     // 使用GET请求获取购物车列表
@@ -298,7 +321,8 @@ return '/images/default-food.png'
 // 修改 add 方法 - 支持演示数据和后端数据
 const add = async (index) => {
 // 检查登录状态
-if (!user.value) {
+const isLoggedIn = localStorage.getItem('isLoggedIn')
+if (isLoggedIn !== 'true') {
   console.log('用户未登录，跳转到登录页')
   alert('请先登录后再添加商品到购物车')
   router.push('/login')
@@ -352,7 +376,8 @@ console.log('当前总数量:', totalQuantity.value)
 // 修改 minus 方法 - 支持演示数据和后端数据
 const minus = async (index) => {
 // 检查登录状态
-if (!user.value) {
+const isLoggedIn = localStorage.getItem('isLoggedIn')
+if (isLoggedIn !== 'true') {
   console.log('用户未登录，跳转到登录页')
   alert('请先登录后再操作购物车')
   router.push('/login')
@@ -429,7 +454,8 @@ if (totalQuantity.value === 0) {
 }
 
 // 检查用户是否登录
-if (!user.value || !user.value.userId) {
+const isLoggedIn = localStorage.getItem('isLoggedIn')
+if (isLoggedIn !== 'true') {
   alert('请先登录')
   router.push('/login')
   return

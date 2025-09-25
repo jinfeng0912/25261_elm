@@ -170,6 +170,7 @@ export default {
                 localStorage.setItem('userInfo', JSON.stringify(userInfo));
                 localStorage.setItem('loginStatus', 'true');
                 localStorage.setItem('role', this.currentRole);
+                localStorage.setItem('isLoggedIn', 'true');  // 添加登录状态标记
                 localStorage.setItem('userId', "not knowing");
                 localStorage.setItem('token', token);
                 localStorage.setItem('userId', userId);

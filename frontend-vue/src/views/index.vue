@@ -194,11 +194,7 @@
         </li>
       </ul>
   
-      <div class="banner" @click="toPackageDeals">
-  <h3>品质套餐</h3>
-  <p>搭配齐全吃得好</p>
-  <a>立即抢购 &gt;</a>
-</div>
+
   
       <div class="supermember" @click="toSuperMember" style="cursor: pointer;">
           <div class="left">

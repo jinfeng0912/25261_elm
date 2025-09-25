@@ -37,6 +37,9 @@ module.exports = defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:8080', // 后端地址
+        onProxyReq(proxyReq){
+         proxyReq.removeHeader('origin')
+        },
         changeOrigin: true,
       }
     }

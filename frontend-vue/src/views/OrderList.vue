@@ -77,10 +77,9 @@
 import Footer from "../components/Footer.vue";
 import qs from "qs";
 import { useRouter, useRoute } from "vue-router";
-import { ref, computed, inject, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { getSessionStorage } from "../common.js";
-
-const axios = inject("axios");
+import axios from "axios";
 const router = useRouter();
 const route = useRoute();
 
@@ -103,22 +102,35 @@ const filteredOrders = computed(() => {
   return orders.value;
 });
 
-// 初始化订单数据
+// 简单校验：判断 token 是否像一个JWT
+const isLikelyJwt = (t) => {
+  return typeof t === 'string' && t.split('.').length === 3 && t.length > 20;
+};
+
+// 初始化订单数据（改为从后端 /api/orders 获取）
 const init = async () => {
   try {
-    const response = await axios.post(
-      "OrdersController/listOrdersByUserId",
-      qs.stringify({
-        userId: user.userId
-      })
-    );
-    
-    orders.value = response.data.map(order => ({
+    const headers = {};
+    if (user?.token && isLikelyJwt(user.token)) headers['Authorization'] = `Bearer ${user.token}`;
+
+    const numericUserId = Number(user?.userId);
+    const effectiveUserId = isNaN(numericUserId) ? 1 : numericUserId; // 非数字则回退到演示用户 1
+    if (isNaN(numericUserId)) {
+      console.warn('userId 非数字，已回退为演示用户ID=1 以便查看订单');
+    }
+    // 注意：已在 main.js 设置 axios.defaults.baseURL = '/api'
+    // 这里无需再写 /api 前缀，避免出现 /api/api/ 重复
+    const response = await axios.get('/orders', {
+      params: { userId: effectiveUserId },
+      headers
+    });
+
+    const data = (response && response.data && response.data.data) ? response.data.data : [];
+    orders.value = data.map(order => ({
       ...order,
       business: order.business || { businessName: '未知商家' },
       list: order.list || []
     }));
-    
   } catch (error) {
     console.error(error);
     alert('获取订单失败');

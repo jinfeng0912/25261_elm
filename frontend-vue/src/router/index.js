@@ -114,6 +114,10 @@ const routes = [{
         name: 'TestConn',
         component: () => import('@/views/TestConn.vue')
     },{
+        path: '/dylLogin',
+        name: 'DylLogin',
+        component: () => import('@/views/DylLogin.vue')
+    },{
   path: '/message',
   name: 'Message',
   component: () => import('@/views/Message.vue')

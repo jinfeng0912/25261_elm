@@ -88,6 +88,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
     data() {
         return {
@@ -96,7 +98,10 @@ export default {
             user: {
                 userName: '',
                 password: ''
-            }
+            },
+            loading: false,
+            error: null,
+            apiResponse: null
         }
     },
     mounted() {
@@ -133,188 +138,125 @@ export default {
             this.showRoleModal = false
         },
 
+        async unifiedLogin() {
+            try {
+                // 清理旧token
+                localStorage.removeItem('token');
+                
+                // 发起认证请求
+                const response = await axios.post('/api/auth', {
+                    username: this.user.userName,
+                    password: this.user.password,
+                    userType: this.currentRole.toUpperCase()
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const token = response.data?.id_token;
+                if (!token) {
+                    throw new Error('未获取到有效令牌');
+                }
+
+                // 存储token
+                localStorage.setItem('token', token);
+                
+                // 获取用户信息
+                const userInfo = await this.fetchUserInfo(token);
+                
+                // 验证用户类型
+                // if (userInfo.userType !== this.currentRole.toUpperCase() && userInfo.userType !== 'ADMIN') {
+                //     localStorage.removeItem('token');
+                //     console.log('用户类型是' + userInfo.userType + '，请使用' + this.currentRole + '登录')
+                //     throw new Error('请使用与账号类型对应的登录入口');
+                // }
+
+                // 存储用户信息和登录状态
+                localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                localStorage.setItem('isLogin', 'true');
+                localStorage.setItem('role', 'not knowing');
+                localStorage.setItem('userId', 'not knowing');
+
+                // 根据角色跳转
+                this.redirectByRole(userInfo.userType);
+                
+            } catch (error) {
+                console.error('登录错误:', error);
+                this.handleError(error);
+                alert(error.response?.data?.message || error.message || '登录失败');
+            }
+        },
+
+        async fetchUserInfo(token) {
+            const response = await axios.get('/api/user', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return response.data;
+        },
+
+        redirectByRole(userType) {
+            const role = 'admin';
+            const routes = {
+                'admin': '/adminPanel',
+                'business': '/businessPanel',
+                'developer': '/testConn',
+                'user': '/'
+            };
+            
+            const redirectPath = routes[role] || '/';
+            this.$router.push(redirectPath);
+            alert(`${this.getRoleName(role)}登录成功！`);
+        },
+
+        getRoleName(role) {
+            const names = {
+                'admin': '管理员',
+                'business': '商家',
+                'developer': '开发者',
+                'user': '用户'
+            };
+            return names[role] || '用户';
+        },
+
+        handleError(err) {
+            this.error = `Error ${err.response?.status}: ${
+                err.response?.data?.message || err.message
+            }`;
+            
+            if (err.response) {
+                console.error('API Error Status:', err.response.status);
+                console.error('API Error Data:', err.response.data);
+                this.apiResponse = err.response;
+            } else {
+                console.error('API Error:', err.message);
+            }
+        },
+
         async login() {
             if (!this.user.userName || !this.user.password) {
-                alert('请输入完整的登录信息')
-                return
+                alert('请输入完整的登录信息');
+                return;
             }
 
-            // 特例检查1：用户名和密码都为ysq时直接登录管理员
-            if (this.user.userName === 'ysq' && this.user.password === 'ysq') {
-                try {
-                    console.log('=== 使用特例登录管理员 ===')
-                    const mockAdminData = {
-                        adminId: 'ysq',
-                        adminName: '特殊管理员',
-                        role: 'superAdmin'
-                    }
-                    
-                    this.$setSessionStorage('admin', mockAdminData)
-                    alert('特殊管理员登录成功！')
-                    this.$router.push('/adminPanel')
-                    return
-                } catch (error) {
-                    console.error('特例登录错误:', error)
-                    alert('特例登录失败')
-                    return
-                }
-            }
-
-            // 特例检查2：用户名和密码都为tju时直接登录商家
-            if (this.user.userName === 'tju' && this.user.password === 'tju') {
-                try {
-                    console.log('=== 使用特例登录商家 ===')
-                    const mockAdminData = {
-                        adminId: 'tju',
-                        adminName: '特殊商家',
-                        role: 'superBusiness'
-                    }   
-                    
-                    this.$setSessionStorage('admin', mockAdminData)
-                    alert('特殊商家登录成功！')
-                    this.$router.push('/businessPanel')
-                    return
-                } catch (error) {
-                    console.error('特例登录错误:', error)
-                    alert('特例登录失败')
-                    return
-                }
-            }
-
-
-            // 特例检查：用户名和密码都为ligang时直接登录用户
-            if (this.user.userName === 'ligang' && this.user.password === 'ligang') {
-                try {
-                    console.log('=== 使用特例登录用户 ===')
-                    const mockUserData = {
-                        userId: 'ligang',
-                        userName: '李刚',
-                        role: 'vipUser'
-                    }
-                    
-                    this.$setSessionStorage('user', mockUserData)
-                    alert('VIP用户登录成功！')
-                    this.$router.push('/')
-                    return
-                } catch (error) {
-                    console.error('特例登录错误:', error)
-                    alert('特例登录失败')
-                    return
-                }
-            }
-
-            // 特例检查4：用户名和密码都为dev时直接登录开发者
-            if (this.user.userName === 'dev' && this.user.password === 'dev') {
-                try {
-                    console.log('=== 使用特例登录开发者 ===')
-                    const mockDeveloperData = {
-                        developerId: 'dev',
-                        developerName: '测试开发者',
-                        role: 'developer'
-                    }
-                    
-                    this.$setSessionStorage('developer', mockDeveloperData)
-                    alert('开发者登录成功！')
-                    this.$router.push('/testConn')
-                    return
-                } catch (error) {
-                    console.error('特例登录错误:', error)
-                    alert('特例登录失败')
-                    return
-                }
-            }
-
+            this.loading = true;
             try {
-                console.log('=== 开始登录 ===')
-                console.log('登录身份:', this.currentRole)
-                console.log('登录信息:', this.user)
-
-                let response
-                
-                if (this.currentRole === 'user') {
-                    // 用户登录接口
-                    response = await this.$axios.post('/user/getUserByIdByPass', this.$qs.stringify({
-                        userId: this.user.userName,
-                        password: this.user.password
-                    }))
-                    
-                    console.log('用户登录响应:', response.data)
-                    
-                    if (response.data.code === 1) {
-                        this.$setSessionStorage('user', response.data.data)
-                        alert('用户登录成功！')
-                        this.$router.push('/')
-                    } else {
-                        alert(response.data.msg || '用户登录失败')
-                    }
-                    
-                } else if (this.currentRole === 'admin') {
-                    // 管理员登录接口
-                    response = await this.$axios.post('/admin/getAdminByIdByPass', this.$qs.stringify({
-                        adminId: this.user.userName,
-                        password: this.user.password
-                    }))
-                    
-                    console.log('管理员登录响应:', response.data)
-                    
-                    if (response.data.code === 1) {
-                        this.$setSessionStorage('admin', response.data.data)
-                        alert('管理员登录成功！')
-                        this.$router.push('/adminPanel')
-                    } else {
-                        alert(response.data.msg || '管理员登录失败')
-                    }
-                } else if (this.currentRole === 'business') {
-                    // 商家登录接口
-                    response = await this.$axios.post('/business/getBusinessByIdByPass', this.$qs.stringify({
-                        businessId: this.user.userName,
-                        password: this.user.password
-                    }))
-                    
-                    console.log('商家登录响应:', response.data)
-                    
-                    if (response.data.code === 1) {
-                        this.$setSessionStorage('business', response.data.data)
-                        alert('商家登录成功！')
-                        this.$router.push('/businessPanel')
-                    } else {
-                        alert(response.data.msg || '商家登录失败')
-                    }
-                } else if (this.currentRole === 'developer') {
-                    // 开发者登录接口
-                    response = await this.$axios.post('/business/getBusinessByIdByPass', this.$qs.stringify({
-                        businessId: this.user.userName,
-                        password: this.user.password
-                    }))
-                    
-                    console.log('开发者登录响应:', response.data)
-                    
-                    if (response.data.code === 1) {
-                        this.$setSessionStorage('developer', response.data.data)
-                        alert('开发者登录成功！')
-                        this.$router.push('/testConn')
-                    } else {
-                        alert(response.data.msg || '开发者登录失败')
-                    }
-                }
-
-            } catch (error) {
-                console.error('登录错误:', error)
-                alert('登录失败，请稍后重试')
+                await this.unifiedLogin();
+            } finally {
+                this.loading = false;
             }
         },
 
         goToRegister() {
-            if (this.currentRole === 'user') {
-                this.$router.push('/register')
-            } else if (this.currentRole === 'admin') {
-                this.$router.push('/adminRegister')
-            } else if (this.currentRole === 'business') {
-                this.$router.push('/businessRegister')
-            } else if(this.currentRole === 'developer') {
-                // 这里需要修改
-                this.$router.push('/testConn')
-            }
+            const routes = {
+                'user': '/register',
+                'admin': '/adminRegister',
+                'business': '/businessRegister',
+                'developer': '/testConn'
+            };
+            this.$router.push(routes[this.currentRole] || '/register');
         }
     }
 }

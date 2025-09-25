@@ -622,6 +622,7 @@ export default {
     },
     methods: {
         // 检查管理员权限
+
         async fetchBusinesses() {
             this.loading = true;
             this.error = null;
@@ -643,6 +644,27 @@ export default {
             console.error('API Error:', err);
             } finally {
             this.loading = false;
+            }
+        },
+        async deleteBusiness(userId) {
+            console.log('删除商家:', userId);
+            console.log('传入商家id:', userId);
+            const confirmText = `确定要删除ID为 ${userId} 的用户吗？`;
+            if (!confirm(`确定要删除ID为 ${userId} 的商家吗？`)) return;
+            
+            this.loading = true;
+            this.error = null;
+            this.apiResponse = null;
+            
+            try {
+                const response = await apiClient.delete(`/businesses/${userId}`);
+                this.apiResponse = response;
+                alert('删除成功！');
+                this.fetchBusinesses();
+            } catch (err) {
+                this.handleError(err);
+            } finally {
+                this.loading = false;
             }
         },
         checkAdminAuth() {
@@ -681,25 +703,6 @@ export default {
             this.showEditBusinessModal = true;
         },
 
-        // 删除商家
-        async deleteBusiness(businessId) {
-            if (!confirm('确定要删除这个商家吗？')) {
-                return;
-            }
-
-            try {
-                console.log('删除商家:', businessId);
-                // 实际开发中替换为API调用
-
-                
-                // 测试阶段直接更新本地数据
-                this.businessList = this.businessList.filter(b => b.businessId !== businessId);
-                alert('删除成功！');
-            } catch (error) {
-                console.error('删除错误:', error);
-                alert('删除失败，请稍后重试');
-            }
-        },
 
         // 保存商家
         async saveBusiness() {

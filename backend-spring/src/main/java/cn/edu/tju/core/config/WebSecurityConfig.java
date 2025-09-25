@@ -82,6 +82,8 @@ public class WebSecurityConfig {
             "/api/orders/**",
             "/api/users",
             "/api/users/**",
+            "/api/user",
+            "/api/user/**",
             "/api/addresses",
             "/api/addresses/**",
             "/swagger-ui/**",

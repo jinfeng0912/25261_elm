@@ -15,7 +15,7 @@ import java.util.List;
 
 import java.util.List;
 import java.util.Map; // 导入 Map
-
+import cn.edu.tju.elm.model.dto.BusinessDTO;
 @RestController
 @RequestMapping("/api/businesses")
 public class BusinessController {
@@ -27,9 +27,14 @@ public class BusinessController {
     private UserService userService; // 确保注入了 UserService
 
     @GetMapping
-    public HttpResult<List<Business>> getBusinesses() {
-        List<Business> businesses = businessService.getAllBusinesses();
-        return HttpResult.success(businesses);
+    public HttpResult<List<BusinessDTO>> getBusinesses(
+            @RequestParam(required = false) Double userLat,
+            @RequestParam(required = false) Double userLng) {
+
+        // 调用Service层中我们刚刚写好的方法
+        List<BusinessDTO> businessesWithDistance = businessService.getAllBusinesses(userLat, userLng);
+
+        return HttpResult.success(businessesWithDistance);
     }
 
     @PostMapping

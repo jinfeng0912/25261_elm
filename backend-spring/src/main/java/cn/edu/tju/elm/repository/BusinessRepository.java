@@ -13,4 +13,5 @@ public interface BusinessRepository extends JpaRepository<Business, Long> {
 
     List<Business> findByBusinessOwnerId(Long userId);
     
+    List<Business> findByLatitudeIsNullOrLongitudeIsNull();
 }

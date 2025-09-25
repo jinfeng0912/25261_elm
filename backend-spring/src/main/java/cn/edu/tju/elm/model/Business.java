@@ -27,7 +27,13 @@ public class Business extends BaseEntity {
     @Column(name = "business_explain")
     private String businessExplain;
 
-    @Column(name = "business_img")
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "business_img", columnDefinition = "TEXT")
     private String businessImg;
 
     @Column(name = "order_type_id")
@@ -65,20 +71,83 @@ public class Business extends BaseEntity {
     }
 
     // Standard Getters and Setters
-    public String getBusinessName() { return businessName; }
-    public void setBusinessName(String businessName) { this.businessName = businessName; }
-    public String getBusinessAddress() { return businessAddress; }
-    public void setBusinessAddress(String businessAddress) { this.businessAddress = businessAddress; }
-    public String getBusinessExplain() { return businessExplain; }
-    public void setBusinessExplain(String businessExplain) { this.businessExplain = businessExplain; }
-    public String getBusinessImg() { return businessImg; }
-    public void setBusinessImg(String businessImg) { this.businessImg = businessImg; }
-    public Integer getOrderTypeId() { return orderTypeId; }
-    public void setOrderTypeId(Integer orderTypeId) { this.orderTypeId = orderTypeId; }
-    public BigDecimal getStartPrice() { return startPrice; }
-    public void setStartPrice(BigDecimal startPrice) { this.startPrice = startPrice; }
-    public BigDecimal getDeliveryPrice() { return deliveryPrice; }
-    public void setDeliveryPrice(BigDecimal deliveryPrice) { this.deliveryPrice = deliveryPrice; }
-    public String getRemarks() { return remarks; }
-    public void setRemarks(String remarks) { this.remarks = remarks; }
+    public String getBusinessName() {
+        return businessName;
+    }
+
+    public void setBusinessName(String businessName) {
+        this.businessName = businessName;
+    }
+
+    public String getBusinessAddress() {
+        return businessAddress;
+    }
+
+    public void setBusinessAddress(String businessAddress) {
+        this.businessAddress = businessAddress;
+    }
+
+    public String getBusinessExplain() {
+        return businessExplain;
+    }
+
+    public void setBusinessExplain(String businessExplain) {
+        this.businessExplain = businessExplain;
+    }
+
+    public String getBusinessImg() {
+        return businessImg;
+    }
+
+    public void setBusinessImg(String businessImg) {
+        this.businessImg = businessImg;
+    }
+
+    public Integer getOrderTypeId() {
+        return orderTypeId;
+    }
+
+    public void setOrderTypeId(Integer orderTypeId) {
+        this.orderTypeId = orderTypeId;
+    }
+
+    public BigDecimal getStartPrice() {
+        return startPrice;
+    }
+
+    public void setStartPrice(BigDecimal startPrice) {
+        this.startPrice = startPrice;
+    }
+
+    public BigDecimal getDeliveryPrice() {
+        return deliveryPrice;
+    }
+
+    public void setDeliveryPrice(BigDecimal deliveryPrice) {
+        this.deliveryPrice = deliveryPrice;
+    }
+
+    public String getRemarks() {
+        return remarks;
+    }
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
 }

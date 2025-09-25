@@ -16,7 +16,6 @@
         :class="{ active: currentTab === 'order' }"
         @click="switchTab('order')"
       >
-        <i class="fa fa-list-alt"></i>
         <span>订单管理</span>
       </div>
       <div
@@ -24,7 +23,6 @@
         :class="{ active: currentTab === 'food' }"
         @click="switchTab('food')"
       >
-        <i class="fa fa-cutlery"></i>
         <span>食品管理</span>
       </div>
       <div
@@ -32,7 +30,6 @@
         :class="{ active: currentTab === 'data' }"
         @click="switchTab('data')"
       >
-        <i class="fa fa-chart-bar"></i>
         <span>数据管理</span>
       </div>
     </div>

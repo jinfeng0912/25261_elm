@@ -105,7 +105,6 @@ const routes = [{
         path: '/businessPanel',
         name: 'BusinessPanel',
         component: () => import('../views/BusinessPanel.vue')
-        //meta: { requiresAuth: true } // 添加一个meta字段，表示这个路由需要认证
     },{
         path: '/adminPanel',
         name: 'AdminPanel',
@@ -134,25 +133,5 @@ const router = createRouter({
     history: createWebHashHistory(),
     routes
 })
-// ======================================================
-// jinfeng 新增导航守卫 ++
-// ======================================================
-router.beforeEach((to, from, next) => {
-    // 检查路由是否需要认证
-    if (to.matched.some(record => record.meta.requiresAuth)) {
-        // 检查localStorage中是否有token（或者你的应用中存储token的其他方式）
-        const token = localStorage.getItem('token');
-        if (!token) {
-            // 如果没有token，重定向到登录页面
-            next({ name: 'Login' });
-        } else {
-            // 如果有token，正常访问
-            next();
-        }
-    } else {
-        // 如果路由不需要认证，直接放行
-        next();
-    }
-});
 
 export default router

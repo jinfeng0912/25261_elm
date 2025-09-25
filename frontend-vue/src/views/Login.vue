@@ -138,7 +138,7 @@ export default {
             this.showRoleModal = false
         },
 
-        async unifiedLogin() {
+        async unifiedLogin(userId) {
             try {
                 // 清理旧token
                 localStorage.removeItem('token');
@@ -147,7 +147,6 @@ export default {
                 const response = await axios.post('/api/auth', {
                     username: this.user.userName,
                     password: this.user.password,
-                    userType: this.currentRole.toUpperCase()
                 }, {
                     headers: {
                         'Content-Type': 'application/json'
@@ -155,6 +154,8 @@ export default {
                 });
 
                 const token = response.data?.id_token;
+                console.log('id_token : ' + token);
+                console.log('当前登录身份 : ' +  this.currentRole);
                 if (!token) {
                     throw new Error('未获取到有效令牌');
                 }
@@ -164,22 +165,19 @@ export default {
                 
                 // 获取用户信息
                 const userInfo = await this.fetchUserInfo(token);
-                
-                // 验证用户类型
-                // if (userInfo.userType !== this.currentRole.toUpperCase() && userInfo.userType !== 'ADMIN') {
-                //     localStorage.removeItem('token');
-                //     console.log('用户类型是' + userInfo.userType + '，请使用' + this.currentRole + '登录')
-                //     throw new Error('请使用与账号类型对应的登录入口');
-                // }
 
                 // 存储用户信息和登录状态
                 localStorage.setItem('userInfo', JSON.stringify(userInfo));
-                localStorage.setItem('isLogin', 'true');
-                localStorage.setItem('role', 'not knowing');
-                localStorage.setItem('userId', 'not knowing');
+                localStorage.setItem('loginStatus', 'true');
+                localStorage.setItem('role', this.currentRole);
+                localStorage.setItem('userId', "not knowing");
+                localStorage.setItem('token', token);
+                localStorage.setItem('userId', userId);
+                
+                console.log("已保存token" + localStorage.getItem('token'));
 
                 // 根据角色跳转
-                this.redirectByRole(userInfo.userType);
+                this.redirectByRole(this.currentRole);
                 
             } catch (error) {
                 console.error('登录错误:', error);
@@ -197,8 +195,7 @@ export default {
             return response.data;
         },
 
-        redirectByRole(userType) {
-            const role = 'admin';
+        redirectByRole(role) {
             const routes = {
                 'admin': '/adminPanel',
                 'business': '/businessPanel',
@@ -243,7 +240,7 @@ export default {
 
             this.loading = true;
             try {
-                await this.unifiedLogin();
+                await this.unifiedLogin(this.user.userName);
             } finally {
                 this.loading = false;
             }

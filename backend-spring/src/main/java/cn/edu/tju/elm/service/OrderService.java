@@ -72,4 +72,13 @@ public class OrderService {
     public List<Order> listOrdersByUserId(Long userId) {
         return orderRepository.findByCustomerId(userId);
     }
+
+    @Transactional
+    public Order markPaid(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("无效的订单ID: " + orderId));
+        order.setOrderState(1);
+        order.setUpdateTime(LocalDateTime.now());
+        return orderRepository.save(order);
+    }
 }

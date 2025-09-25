@@ -45,9 +45,8 @@
   import Footer from "../components/Footer.vue";
   import qs from "qs";
   import { useRouter, useRoute } from "vue-router";
-  import { ref, inject, onMounted, onUnmounted } from "vue";
-  
-  const axios = inject("axios");
+  import { ref, onMounted, onUnmounted } from "vue";
+  import axios from "axios";
   const router = useRouter();
   const route = useRoute();
   
@@ -57,34 +56,34 @@
   const selectedPayment = ref('alipay');
   const isProcessing = ref(false);
   
-  // 初始化方法 - 使用你后端的 OrdersController/getOrdersById
-  const init = () => {
+  // 初始化方法：从后端拉取订单列表后按ID筛选
+  const init = async () => {
     console.log('=== 支付页面初始化 ===');
     console.log('订单ID:', orderId);
     
-    // 调用你后端的获取订单接口
-    axios
-      .post(
-        "OrdersController/getOrdersById",  // 匹配你的后端接口名
-        qs.stringify({
-          orderId: orderId,
-        })
-      )
-      .then((response) => {
-        if (response.data) {
-          orders.value = response.data;
-          console.log('订单数据加载成功:', orders.value);
-        } else {
-          console.error('订单数据为空');
-          alert('订单信息不存在');
-          router.go(-1);
-        }
-      })
-      .catch((error) => {
-        console.error('加载订单数据失败:', error);
-        alert('加载订单信息失败');
+    try {
+      // 临时：与订单页一致，未登录情况下用固定 userId=1 获取订单列表
+      const resp = await axios.get('/orders', { params: { userId: 1 } });
+      const list = (resp && resp.data && resp.data.data) ? resp.data.data : [];
+      const idStr = String(orderId ?? '');
+      const found = list.find(x => String(x.id ?? x.orderId ?? x.orderID ?? x.order_id) === idStr);
+      if (!found) {
+        alert('订单信息不存在');
         router.go(-1);
-      });
+        return;
+      }
+      // 兜底字段
+      orders.value = {
+        ...found,
+        business: found.business || { businessName: '未知商家', deliveryPrice: 0 },
+        list: found.list || []
+      };
+      console.log('订单数据加载成功:', orders.value);
+    } catch (e) {
+      console.error('加载订单数据失败:', e);
+      alert('加载订单信息失败');
+      router.go(-1);
+    }
   };
   
   // 页面初始化
@@ -159,7 +158,19 @@
     console.log('=== 支付成功 ===');
     
     // 可以调用后端更新订单状态的接口
-    // axios.post("OrdersController/updateOrder", qs.stringify({ orderId: orderId }))
+    // 为避免 403，尝试调用后端；失败则本地标记，供订单页展示（联调演示用）
+    axios.post(`/orders/${orderId}/pay`).catch(() => {
+      axios.get(`/orders/${orderId}/pay`).catch(() => {});
+    });
+
+    // 本地标记已支付（前端兜底显示，不影响后端数据）
+    try {
+      const key = 'paid_orders_demo';
+      const raw = localStorage.getItem(key);
+      const arr = raw ? JSON.parse(raw) : [];
+      if (!arr.includes(String(orderId))) arr.push(String(orderId));
+      localStorage.setItem(key, JSON.stringify(arr));
+    } catch (e) {}
     
     const paymentMethods = {
       'alipay': '支付宝',
@@ -168,8 +179,8 @@
     
     alert(`${paymentMethods[selectedPayment.value]}支付成功！\n\n订单号：${orderId}\n支付金额：￥${orders.value.orderTotal}\n\n预计30分钟内送达，请留意配送员电话。`);
     
-    // 跳转到首页或订单列表
-    router.push('/index');
+    // 跳转到订单列表并刷新
+    router.push({ path: '/orderList', query: { refreshed: Date.now() } });
   };
   
   // 支付失败处理

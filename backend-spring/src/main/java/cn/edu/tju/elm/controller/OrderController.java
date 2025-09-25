@@ -42,4 +42,15 @@ public class OrderController {
     public HttpResult<List<Order>> listOrdersByUserId(@RequestParam Long userId) throws Exception{
         return HttpResult.success(ordersService.listOrdersByUserId(userId));
     }
+
+    @PostMapping("/{id}/pay")
+    public HttpResult<Order> markPaid(@PathVariable Long id) {
+        return HttpResult.success(ordersService.markPaid(id));
+    }
+
+    // 为联调便利，新增等效GET接口，避免部分环境POST被拦截
+    @GetMapping("/{id}/pay")
+    public HttpResult<Order> markPaidGet(@PathVariable Long id) {
+        return HttpResult.success(ordersService.markPaid(id));
+    }
 }

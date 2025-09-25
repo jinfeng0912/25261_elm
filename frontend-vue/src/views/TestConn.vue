@@ -4,8 +4,9 @@
     <div class="button-group">
       <button @click="fetchBusinesses">测试获取商家列表</button>
       <button @click="testDeleteBusiness" class="delete-button">测试删除商家</button>
-      <!-- 新增登录测试按钮 -->
       <button @click="testLogin" class="login-button">测试登录功能</button>
+      <button @click="fetchFoods">测试获取食品列表</button>
+      <button @click="testStorage">测试本地存储</button>
     </div>
     <div v-if="loading">Loading...</div>
     <div v-if="error" class="error">{{ error }}</div>
@@ -35,6 +36,7 @@
 
 <script>
 import axios from 'axios';
+import { saveAuthData, saveIdToken, saveId, saveRole, getId, getRole, getIdToken } from '@/utils/storage'
 
 const apiClient = axios.create({
   baseURL: '/api'
@@ -51,6 +53,71 @@ export default {
     };
   },
   methods: {
+    async testStorage() {
+      this.loading = true;
+      this.error = null;
+      this.apiResponse = null;
+      
+      try {
+        console.group('🧪 存储功能测试开始');
+        
+        // 1. 测试保存功能
+        console.log('📝 测试保存数据...');
+        const testData = {
+          id_token: 'test_token_' + Date.now(),
+          id: 'test_user_' + Math.floor(Math.random() * 1000),
+          role: 'tester'
+        };
+        
+        saveAuthData(testData);
+        console.log('✅ 数据保存成功:', testData);
+        
+        // // 2. 测试读取功能
+        console.log('🔍 测试单个读取数据...');
+        console.log(getIdToken());
+        console.log(getId());
+        console.log(getRole());
+
+        // 5. 测试单个保存功能
+        console.log('📝 测试单个数据保存...');
+        const newToken = 'updated_token_' + Date.now();
+        saveIdToken(newToken);
+        console.log('✅ Token更新成功:', newToken);
+        
+        const newRole = 'admin';
+        saveRole(newRole);
+        console.log('✅ Role更新成功:', newRole);
+        
+        
+        console.groupEnd();
+        
+        // 9. 显示成功消息
+        this.successMessage = '存储功能测试完成！所有操作成功。';
+        console.log('🎉 ' + this.successMessage);
+        
+      } catch (error) {
+        console.error('❌ 存储测试出错:', error);
+        this.error = `测试失败: ${error.message}`;
+        this.successMessage = null;
+        
+        // 详细的错误日志
+        console.group('错误详情');
+        console.error('错误名称:', error.name);
+        console.error('错误信息:', error.message);
+        console.error('错误堆栈:', error.stack);
+        console.groupEnd();
+        
+      } finally {
+        this.loading = false;
+        
+        // 测试完成后清理（可选）
+        setTimeout(() => {
+          console.log('🧹 测试完成，清理临时数据...');
+          // clearAuthData(); // 如果需要清理取消注释
+          console.log('✅ 清理完成');
+        }, 3000);
+      }
+    },
     async fetchBusinesses() {
       this.loading = true;
       this.error = null;
@@ -65,6 +132,34 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    async fetchFoods() {
+      this.loading = true;
+      this.error = null;
+      this.apiResponse = null;
+      
+      try {
+        const response = await apiClient.get('/foods');
+        this.apiResponse = response;
+        console.log(response.data);
+      } catch (err) {
+        this.handleError(err);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async testReadLocalStore() {
+      this.loading = true;
+      this.error = null;
+      this.apiResponse = null;
+      // 2. 初始化 store 实例
+      const userStore = sessionLoginUserStore()
+
+      // 3. 读取数据
+      console.log('用户Token:', userStore.getSessionUser.token)
+      console.log('用户ID:', userStore.getSessionUser.userId)
+      console.log('用户名:', userStore.getSessionUser.userName)      
+      
     },
     
     async testDeleteBusiness() {

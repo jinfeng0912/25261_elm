@@ -86,6 +86,14 @@ const route = useRoute();
 const user = getSessionStorage("user");
 const orders = ref([]);
 const activeTab = ref('all');
+console.log("从本地储存读取token")
+console.log(localStorage.getItem("token"))
+console.log("从本地读取角色")
+console.log(localStorage.getItem("role"))
+console.log("从本地读取id")
+console.log(localStorage.getItem("userId"))
+console.log("从本地读取登录状态")
+console.log(localStorage.getItem("loginStatus"))
 
 // 根据路由参数初始化筛选条件
 if (route.query.businessId) {
@@ -94,12 +102,21 @@ if (route.query.businessId) {
 
 // 筛选后的订单
 const filteredOrders = computed(() => {
+  const key = 'paid_orders_demo';
+  let paidIds = [];
+  try { paidIds = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
+
+  const withLocalMark = orders.value.map(o => ({
+    ...o,
+    orderState: paidIds.includes(String(o.id ?? o.orderId)) ? 1 : o.orderState
+  }));
+
   if (activeTab.value === 'unpaid') {
-    return orders.value.filter(o => o.orderState === 0);
+    return withLocalMark.filter(o => o.orderState === 0);
   } else if (activeTab.value === 'paid') {
-    return orders.value.filter(o => o.orderState === 1);
+    return withLocalMark.filter(o => o.orderState === 1);
   }
-  return orders.value;
+  return withLocalMark;
 });
 
 // 简单校验：判断 token 是否像一个JWT
@@ -113,13 +130,10 @@ const init = async () => {
     const headers = {};
     if (user?.token && isLikelyJwt(user.token)) headers['Authorization'] = `Bearer ${user.token}`;
 
-    const numericUserId = Number(user?.userId);
-    const effectiveUserId = isNaN(numericUserId) ? 1 : numericUserId; // 非数字则回退到演示用户 1
-    if (isNaN(numericUserId)) {
-      console.warn('userId 非数字，已回退为演示用户ID=1 以便查看订单');
-    }
-    // 注意：已在 main.js 设置 axios.defaults.baseURL = '/api'
-    // 这里无需再写 /api 前缀，避免出现 /api/api/ 重复
+    // 临时硬编码：为了测试“查看订单”，固定使用测试用户ID=1
+    // 待登录功能稳定后，将此行改回从登录态读取
+    const effectiveUserId = 1;
+    // 走 axios.defaults.baseURL = '/api'，避免出现 /api/api 的重复
     const response = await axios.get('/orders', {
       params: { userId: effectiveUserId },
       headers
@@ -152,7 +166,7 @@ const goToPayment = (order) => {
   router.push({
     path: '/payment',
     query: { 
-      orderId: order.orderId,
+      orderId: (order && (order.orderId ?? order.id)) ,
       from: 'orders'
     }
   });

@@ -18,7 +18,6 @@
                 :class="{ active: currentTab === 'business' }"
                 @click="switchTab('business')"
             >
-                <i class="fa fa-store"></i>
                 <span>商家管理</span>
             </div>
             <div 
@@ -26,7 +25,6 @@
                 :class="{ active: currentTab === 'user' }"
                 @click="switchTab('user')"
             >
-                <i class="fa fa-users"></i>
                 <span>用户管理</span>
             </div>
             <div 
@@ -34,24 +32,22 @@
                 :class="{ active: currentTab === 'order' }"
                 @click="switchTab('order')"
             >
-                <i class="fa fa-list-alt"></i>
                 <span>订单管理</span>
+            </div>
+            <div 
+                class="menu-item" 
+                :class="{ active: currentTab === 'food' }"
+                @click="switchTab('food')"
+            >
+
+                <span>食品管理</span>
             </div>
             <div 
                 class="menu-item" 
                 :class="{ active: currentTab === 'data' }"
                 @click="switchTab('data')"
             >
-                <i class="fa fa-chart-bar"></i>
                 <span>数据管理</span>
-            </div>
-            <div 
-                class="menu-item" 
-                :class="{ active: $route.path === '/testConn' }"
-                @click="$router.push('/testConn')"
-            >
-                <i class="fa fa-chart-bar"></i>
-                <span>接口测试</span>
             </div>
         </div>
 
@@ -96,6 +92,54 @@
                             <i class="fa fa-edit"></i>
                         </button>
                         <button class="delete-btn" @click="deleteBusiness(business.businessId)">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 食品管理 -->
+        <div v-if="currentTab === 'food'" class="content">
+            <div class="section-title">
+                <h3>食品管理</h3>
+                <button class="add-btn" @click="showAddBusinessModal = true">
+                    <i class="fa fa-plus"></i> 新增食品
+                </button>
+            </div>
+
+            <!-- 加载状态 -->
+            <div v-if="loading" class="loading-state">
+                <i class="fa fa-spinner fa-spin"></i> 加载中...
+            </div>
+
+            <!-- 错误提示 -->
+            <div v-if="error" class="error-message">
+                {{ error }}
+                <button @click="fetchFoods">重试</button>
+            </div>
+
+            <div class="food-list" v-if="!loading && !error">
+                <div class="list-header">
+                    <div class="col-id">ID</div>
+                    <div class="col-name">食品名称</div>
+                    <div class="col-explain">食品价格</div>
+                    <div class="col-action">操作</div>
+                </div>
+                
+                <div 
+                    class="list-item" 
+                    v-for="food in this.foodList" 
+                    :key="food.id"
+                >
+                    <div class="col-id">{{ food.id }}</div>
+                    <div class="col-name">{{ food.foodName }}</div>
+                    <div class="col-explain">{{ food.foodPrice }}</div>
+                    <div class="col-action">
+                        <button class="edit-btn" @click="editFood(food)">
+                            <i class="fa fa-edit"></i>
+                        </button>
+                        <button class="delete-btn" @click="deleteFood(food.id)">
                             <i class="fa fa-trash"></i>
                         </button>
                     </div>
@@ -272,7 +316,7 @@
                     
                     <div class="order-items">
                         <h4>订单商品</h4>
-                        <div class="item" v-for="item in currentOrder.items" :key="item.foodId">
+                        <div class="item" v-for="item in currentOrder.items" :key="item.id">
                             <span class="name">{{ item.foodName }}</span>
                             <span class="quantity">×{{ item.quantity }}</span>
                             <span class="price">¥{{ item.foodPrice }}</span>
@@ -323,48 +367,32 @@
                 <div class="card">
                     <div class="card-title">总订单数</div>
                     <div class="card-value">{{ statistics.totalOrders }}</div>
-                    <div class="card-change" :class="getChangeClass(statistics.orderChange)">
-                        <i class="fa" :class="getChangeIcon(statistics.orderChange)"></i>
-                        {{ Math.abs(statistics.orderChange) }}%
-                    </div>
                 </div>
                 <div class="card">
                     <div class="card-title">总收入</div>
                     <div class="card-value">¥{{ statistics.totalRevenue }}</div>
-                    <div class="card-change" :class="getChangeClass(statistics.revenueChange)">
-                        <i class="fa" :class="getChangeIcon(statistics.revenueChange)"></i>
-                        {{ Math.abs(statistics.revenueChange) }}%
-                    </div>
                 </div>
                 <div class="card">
-                    <div class="card-title">新增用户</div>
+                    <div class="card-title">总用户数</div>
                     <div class="card-value">{{ statistics.newUsers }}</div>
-                    <div class="card-change" :class="getChangeClass(statistics.userChange)">
-                        <i class="fa" :class="getChangeIcon(statistics.userChange)"></i>
-                        {{ Math.abs(statistics.userChange) }}%
-                    </div>
                 </div>
                 <div class="card">
-                    <div class="card-title">活跃商家</div>
+                    <div class="card-title">总商家数</div>
                     <div class="card-value">{{ statistics.activeBusinesses }}</div>
-                    <div class="card-change" :class="getChangeClass(statistics.businessChange)">
-                        <i class="fa" :class="getChangeIcon(statistics.businessChange)"></i>
-                        {{ Math.abs(statistics.businessChange) }}%
-                    </div>
                 </div>
             </div>
 
             <div class="top-lists">
                 <div class="top-list">
-                    <h4>热销商品TOP5</h4>
-                    <div class="list-item" v-for="(food, index) in topFoods" :key="food.foodId">
+                    <h4>热销商品TOP</h4>
+                    <div class="list-item" v-for="(food, index) in topFoods" :key="food.id">
                         <span class="rank">{{ index + 1 }}</span>
                         <span class="name">{{ food.foodName }}</span>
                         <span class="count">{{ food.sales }}份</span>
                     </div>
                 </div>
                 <div class="top-list">
-                    <h4>热门商家TOP5</h4>
+                    <h4>热门商家TOP</h4>
                     <div class="list-item" v-for="(business, index) in topBusinesses" :key="business.businessId">
                         <span class="rank">{{ index + 1 }}</span>
                         <span class="name">{{ business.businessName }}</span>
@@ -462,36 +490,8 @@ export default {
             
             // 数据列表
             businessList: [
-                {
-                    businessId: 1,
-                    businessName: '测试商家1',
-                    businessAddress: '测试地址1',
-                    businessExplain: '测试商家简介1',
-                    deliveryPrice: 5
-                },
-                {
-                    businessId: 2,
-                    businessName: '测试商家2',
-                    businessAddress: '测试地址2',
-                    businessExplain: '测试商家简介2',
-                    deliveryPrice: 8
-                }
             ],
             foodList: [
-                {
-                    foodId: 1,
-                    foodName: '测试食品1',
-                    foodExplain: '测试食品简介1',
-                    foodPrice: 15,
-                    businessId: 1
-                },
-                {
-                    foodId: 2,
-                    foodName: '测试食品2',
-                    foodExplain: '测试食品简介2',
-                    foodPrice: 20,
-                    businessId: 1
-                }
             ],
             
             // 用户管理相关
@@ -533,8 +533,8 @@ export default {
                     orderStatus: 5,
                     orderAmount: 35,
                     items: [
-                        { foodId: 1, foodName: '测试食品1', quantity: 2, foodPrice: 15 },
-                        { foodId: 2, foodName: '测试食品2', quantity: 1, foodPrice: 20 }
+                        { id: 1, foodName: '测试食品1', quantity: 2, foodPrice: 15 },
+                        { id: 2, foodName: '测试食品2', quantity: 1, foodPrice: 20 }
                     ]
                 },
                 {
@@ -546,7 +546,7 @@ export default {
                     orderStatus: 2,
                     orderAmount: 48,
                     items: [
-                        { foodId: 3, foodName: '测试食品3', quantity: 3, foodPrice: 16 }
+                        { id: 3, foodName: '测试食品3', quantity: 3, foodPrice: 16 }
                     ]
                 }
             ],
@@ -585,18 +585,12 @@ export default {
             statsStartDate: '',
             statsEndDate: '',
             topFoods: [
-                { foodId: 1, foodName: '测试食品1', sales: 45 },
-                { foodId: 2, foodName: '测试食品2', sales: 38 },
-                { foodId: 3, foodName: '测试食品3', sales: 32 },
-                { foodId: 4, foodName: '测试食品4', sales: 28 },
-                { foodId: 5, foodName: '测试食品5', sales: 25 }
+                { id: 1, foodName: '测试食品1', sales: 45 },
+                { id: 2, foodName: '测试食品2', sales: 38 },
             ],
             topBusinesses: [
                 { businessId: 1, businessName: '测试商家1', orders: 62 },
                 { businessId: 2, businessName: '测试商家2', orders: 58 },
-                { businessId: 3, businessName: '测试商家3', orders: 45 },
-                { businessId: 4, businessName: '测试商家4', orders: 38 },
-                { businessId: 5, businessName: '测试商家5', orders: 32 }
             ],
             
             // 当前编辑项
@@ -608,7 +602,7 @@ export default {
                 deliveryPrice: ''
             },
             currentFood: {
-                foodId: null,
+                id: null,
                 foodName: '',
                 foodExplain: '',
                 foodPrice: '',
@@ -619,6 +613,7 @@ export default {
     mounted() {
         this.checkAdminAuth();
         this.fetchBusinesses();
+        this.fetchFoods();
     },
     methods: {
         // 检查管理员权限
@@ -665,6 +660,30 @@ export default {
                 this.handleError(err);
             } finally {
                 this.loading = false;
+            }
+        },
+        async fetchFoods() {
+            this.loading = true;
+            this.error = null;
+            
+            try {
+                const response = await apiClient.get('/foods');
+                // 将API返回的数据格式转换为组件需要的格式
+                this.foodList = response.data.data.map(food => ({
+                    id: food.id,
+                    foodName: food.foodName,
+                    foodExplain: food.foodExplain,
+                    foodPrice: food.foodPrice,
+                    businessId: food.business.id,
+                    businessName: food.business.businessName
+                }));
+                console.log("foodList:");
+                console.log(this.foodList);
+            } catch (err) {
+                this.error = `加载食品数据失败: ${err.message}`;
+                console.error('API Error:', err);
+            } finally {
+            this.loading = false;
             }
         },
         checkAdminAuth() {
@@ -745,25 +764,12 @@ export default {
         },
 
         // 删除食品
-        async deleteFood(foodId) {
+        async deleteFood(id) {
             if (!confirm('确定要删除这个食品吗？')) {
                 return;
             }
-
             try {
-                console.log('删除食品:', foodId);
-                // 实际开发中替换为API调用
-                // const response = await this.$axios.post('/food/deleteFood', this.$qs.stringify({
-                //     foodId: foodId
-                // }));
-                // if (response.data.code === 1) {
-                //     alert('删除成功！');
-                //     this.loadFoodList();
-                // }
-                
-                // 测试阶段直接更新本地数据
-                this.foodList = this.foodList.filter(f => f.foodId !== foodId);
-                alert('删除成功！');
+                console.log('删除食品:', id);
             } catch (error) {
                 console.error('删除错误:', error);
                 alert('删除失败，请稍后重试');
@@ -795,12 +801,12 @@ export default {
                 
                 // 测试阶段直接更新本地数据
                 if (isEdit) {
-                    const index = this.foodList.findIndex(f => f.foodId === this.currentFood.foodId);
+                    const index = this.foodList.findIndex(f => f.id === this.currentFood.id);
                     if (index !== -1) {
                         this.foodList[index] = { ...this.currentFood };
                     }
                 } else {
-                    this.currentFood.foodId = Math.max(...this.foodList.map(f => f.foodId)) + 1;
+                    this.currentFood.id = Math.max(...this.foodList.map(f => f.id)) + 1;
                     this.foodList.push({ ...this.currentFood });
                 }
                 
@@ -831,7 +837,7 @@ export default {
             this.showAddFoodModal = false;
             this.showEditFoodModal = false;
             this.currentFood = {
-                foodId: null,
+                id: null,
                 foodName: '',
                 foodExplain: '',
                 foodPrice: '',
@@ -1656,21 +1662,6 @@ header {
     font-weight: bold;
     color: #333;
     margin-bottom: 1vw;
-}
-
-.card-change {
-    font-size: 2.5vw;
-    display: flex;
-    align-items: center;
-    gap: 0.5vw;
-}
-
-.card-change.positive {
-    color: #28a745;
-}
-
-.card-change.negative {
-    color: #dc3545;
 }
 
 .top-lists {

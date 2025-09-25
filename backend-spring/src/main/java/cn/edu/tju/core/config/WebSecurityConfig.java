@@ -20,7 +20,7 @@ import cn.edu.tju.core.security.JwtAccessDeniedHandler;
 import cn.edu.tju.core.security.JwtAuthenticationEntryPoint;
 import cn.edu.tju.core.security.jwt.JWTFilter;
 import cn.edu.tju.core.security.jwt.TokenProvider;
-
+import org.springframework.http.HttpMethod;
 import java.util.Collections;
 
 @Configuration  //标明这个类为配置类，spring应用程序一启动，类中的been 就会被初始化在spring容器中
@@ -114,6 +114,10 @@ public class WebSecurityConfig {
                             //除上面声明的可匿名访问地址，其它所有请求全部需要进行认证
 //                            .requestMatchers("/api/person").hasAuthority("USER")
 //                            .requestMatchers("/api/hiddenmessage").hasAuthority("ADMIN")
+                            // ++ 新增这两行代码 ++
+                            .requestMatchers(HttpMethod.GET, "/api/foods/my").authenticated()
+                            .requestMatchers(HttpMethod.GET, "/api/businesses/my").authenticated()
+
                             .anyRequest()
                             .authenticated();
                 })

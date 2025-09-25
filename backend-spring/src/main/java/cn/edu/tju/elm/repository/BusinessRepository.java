@@ -11,5 +11,6 @@ public interface BusinessRepository extends JpaRepository<Business, Long> {
     //  ADDED: This method finds all businesses that have not been soft-deleted.
     List<Business> findAllByDeletedFalse();
 
-    List<Business> findByBusinessOwnerId(Long id);
+    List<Business> findByBusinessOwnerId(Long userId);
+    
 }

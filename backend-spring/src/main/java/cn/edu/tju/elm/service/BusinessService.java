@@ -7,12 +7,13 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 
 @Service
 public class BusinessService {
@@ -187,5 +188,12 @@ public class BusinessService {
             business.setUpdateTime(LocalDateTime.now());
             businessRepository.save(business);
         }
+    }
+
+
+    // jinfeng 新增这个方法,businesspanel需要用到
+    @Transactional(readOnly = true)
+    public List<Business> getBusinessesByUser(User user) {
+        return businessRepository.findByBusinessOwnerId(user.getId());
     }
 }

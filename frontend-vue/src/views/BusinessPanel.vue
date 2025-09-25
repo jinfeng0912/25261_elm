@@ -1,6 +1,5 @@
 <template>
   <div class="wrapper">
-    <!-- Header -->
     <header>
       <div class="header-left">
         <p>商家管理后台</p>
@@ -11,26 +10,25 @@
       </div>
     </header>
 
-    <!-- 功能菜单 -->
     <div class="menu-section">
-      <div 
-        class="menu-item" 
+      <div
+        class="menu-item"
         :class="{ active: currentTab === 'order' }"
         @click="switchTab('order')"
       >
         <i class="fa fa-list-alt"></i>
         <span>订单管理</span>
       </div>
-      <div 
-        class="menu-item" 
+      <div
+        class="menu-item"
         :class="{ active: currentTab === 'food' }"
         @click="switchTab('food')"
       >
         <i class="fa fa-cutlery"></i>
         <span>食品管理</span>
       </div>
-      <div 
-        class="menu-item" 
+      <div
+        class="menu-item"
         :class="{ active: currentTab === 'data' }"
         @click="switchTab('data')"
       >
@@ -39,127 +37,13 @@
       </div>
     </div>
 
-    <!-- 订单管理 -->
     <div v-if="currentTab === 'order'" class="content">
-      <div class="section-title">
-        <h3>订单管理</h3>
-        <div class="filter-section">
-          <select v-model="orderFilter.status" @change="loadOrders">
-            <option value="">全部状态</option>
-            <option value="1">待支付</option>
-            <option value="2">已支付</option>
-            <option value="3">已接单</option>
-            <option value="4">配送中</option>
-            <option value="5">已完成</option>
-            <option value="6">已取消</option>
-          </select>
-          <input type="date" v-model="orderFilter.startDate" @change="loadOrders">
-          <input type="date" v-model="orderFilter.endDate" @change="loadOrders">
-        </div>
       </div>
 
-      <div class="order-list">
-        <div class="list-header">
-          <div class="col-id">订单号</div>
-          <div class="col-user">用户</div>
-          <div class="col-amount">金额</div>
-          <div class="col-time">下单时间</div>
-          <div class="col-status">状态</div>
-          <div class="col-action">操作</div>
-        </div>
-        
-        <div class="list-item" v-for="order in orderList" :key="order.orderId">
-          <div class="col-id">{{ order.orderId }}</div>
-          <div class="col-user">{{ order.userName }}</div>
-          <div class="col-amount">¥{{ order.orderAmount }}</div>
-          <div class="col-time">{{ formatDateTime(order.orderTime) }}</div>
-          <div class="col-status">
-            <span :class="getOrderStatusClass(order.orderStatus)">
-              {{ getOrderStatusText(order.orderStatus) }}
-            </span>
-          </div>
-          <div class="col-action">
-            <button class="detail-btn" @click="viewOrderDetails(order)">
-              <i class="fa fa-eye"></i> 详情
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 分页控件 -->
-      <div class="pagination">
-        <button @click="prevOrderPage" :disabled="orderPage === 1">上一页</button>
-        <span>第 {{ orderPage }} 页</span>
-        <button @click="nextOrderPage" :disabled="orderList.length < orderPageSize">下一页</button>
-      </div>
-
-      <!-- 订单详情模态框 -->
-      <div class="modal-overlay" v-if="showOrderDetailModal" @click="closeOrderDetailModal">
-        <div class="order-detail-modal" @click.stop>
-          <h3>订单详情 #{{ currentOrder.orderId }}</h3>
-          
-          <div class="order-info">
-            <div class="info-row">
-              <span class="label">用户：</span>
-              <span class="value">{{ currentOrder.userName }} ({{ currentOrder.userPhone }})</span>
-            </div>
-            <div class="info-row">
-              <span class="label">下单时间：</span>
-              <span class="value">{{ formatDateTime(currentOrder.orderTime) }}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">订单状态：</span>
-              <span class="value">{{ getOrderStatusText(currentOrder.orderStatus) }}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">配送地址：</span>
-              <span class="value">{{ currentOrder.deliveryAddress }}</span>
-            </div>
-          </div>
-          
-          <div class="order-items">
-            <h4>订单商品</h4>
-            <div class="item" v-for="item in currentOrder.items" :key="item.foodId">
-              <span class="name">{{ item.foodName }}</span>
-              <span class="quantity">×{{ item.quantity }}</span>
-              <span class="price">¥{{ item.foodPrice }}</span>
-            </div>
-          </div>
-          
-          <div class="order-summary">
-            <div class="summary-row">
-              <span class="label">商品总价：</span>
-              <span class="value">¥{{ currentOrder.foodAmount }}</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">配送费：</span>
-              <span class="value">¥{{ currentOrder.deliveryPrice }}</span>
-            </div>
-            <div class="summary-row total">
-              <span class="label">实付金额：</span>
-              <span class="value">¥{{ currentOrder.orderAmount }}</span>
-            </div>
-          </div>
-          
-          <div class="modal-buttons">
-            <button class="cancel-btn" @click="closeOrderDetailModal">关闭</button>
-            <button 
-              class="confirm-btn" 
-              v-if="currentOrder.orderStatus === 2" 
-              @click="confirmOrder(currentOrder.orderId)"
-            >
-              确认接单
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 食品管理 -->
     <div v-if="currentTab === 'food'" class="content">
       <div class="section-title">
         <h3>食品管理</h3>
-        <button class="add-btn" @click="showAddFoodModal = true">
+        <button class="add-btn" @click="openAddFoodModal">
           <i class="fa fa-plus"></i> 新增食品
         </button>
       </div>
@@ -173,26 +57,25 @@
           <div class="col-action">操作</div>
         </div>
         
-        <div class="list-item" v-for="food in foodList" :key="food.foodId">
-          <div class="col-id">{{ food.foodId }}</div>
+        <div class="list-item" v-for="food in foodList" :key="food.id">
+          <div class="col-id">{{ food.id }}</div>
           <div class="col-name">{{ food.foodName }}</div>
           <div class="col-explain">{{ food.foodExplain }}</div>
           <div class="col-price">¥{{ food.foodPrice }}</div>
           <div class="col-action">
-            <button class="edit-btn" @click="editFood(food)">
+            <button class="edit-btn" @click="openEditFoodModal(food)">
               <i class="fa fa-edit"></i>
             </button>
-            <button class="delete-btn" @click="deleteFood(food.foodId)">
+            <button class="delete-btn" @click="deleteFood(food.id)">
               <i class="fa fa-trash"></i>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- 新增/编辑食品模态框 -->
-      <div class="modal-overlay" v-if="showAddFoodModal || showEditFoodModal" @click="closeFoodModal">
+      <div class="modal-overlay" v-if="showFoodModal" @click="closeFoodModal">
         <div class="business-modal" @click.stop>
-          <h3>{{ showAddFoodModal ? '新增食品' : '编辑食品' }}</h3>
+          <h3>{{ isEditMode ? '编辑食品' : '新增食品' }}</h3>
           
           <div class="form-group">
             <label>食品名称：</label>
@@ -212,79 +95,29 @@
           <div class="modal-buttons">
             <button class="cancel-btn" @click="closeFoodModal">取消</button>
             <button class="confirm-btn" @click="saveFood">
-              {{ showAddFoodModal ? '新增' : '保存' }}
+              {{ isEditMode ? '保存' : '新增' }}
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 数据管理 -->
     <div v-if="currentTab === 'data'" class="content">
-      <div class="section-title">
-        <h3>数据统计</h3>
-        <div class="date-range">
-          <input type="date" v-model="statsStartDate" @change="loadStatistics">
-          <span>至</span>
-          <input type="date" v-model="statsEndDate" @change="loadStatistics">
-        </div>
       </div>
-
-      <div class="stats-cards">
-        <div class="card">
-          <div class="card-title">总订单数</div>
-          <div class="card-value">{{ statistics.totalOrders }}</div>
-          <div class="card-change" :class="getChangeClass(statistics.orderChange)">
-            <i class="fa" :class="getChangeIcon(statistics.orderChange)"></i>
-            {{ Math.abs(statistics.orderChange) }}%
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">总收入</div>
-          <div class="card-value">¥{{ statistics.totalRevenue }}</div>
-          <div class="card-change" :class="getChangeClass(statistics.revenueChange)">
-            <i class="fa" :class="getChangeIcon(statistics.revenueChange)"></i>
-            {{ Math.abs(statistics.revenueChange) }}%
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">热销食品</div>
-          <div class="card-value">{{ statistics.topFoodCount }}</div>
-          <div class="card-change" :class="getChangeClass(statistics.foodChange)">
-            <i class="fa" :class="getChangeIcon(statistics.foodChange)"></i>
-            {{ Math.abs(statistics.foodChange) }}%
-          </div>
-        </div>
-      </div>
-
-      <div class="top-lists">
-        <div class="top-list">
-          <h4>热销食品TOP5</h4>
-          <div class="list-item" v-for="(food, index) in topFoods" :key="food.foodId">
-            <span class="rank">{{ index + 1 }}</span>
-            <span class="name">{{ food.foodName }}</span>
-            <span class="count">{{ food.sales }}份</span>
-          </div>
-        </div>
-        <div class="top-list">
-          <h4>订单趋势</h4>
-          <div class="trend-item" v-for="(trend, index) in orderTrends" :key="index">
-            <span class="date">{{ trend.date }}</span>
-            <span class="count">{{ trend.count }}单</span>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data() {
     return {
       adminName: '商家管理员',
-      currentTab: 'order',
-      
+      currentTab: 'food', // 默认显示食品管理
+      business: null, // 存放商家信息
+      isLoading: true, // 新增：用于表示是否正在加载初始数据
+
       // 订单管理相关
       orderList: [
         {
@@ -339,35 +172,17 @@ export default {
       },
 
       // 食品管理相关
-      foodList: [
-        {
-          foodId: 1,
-          foodName: '测试食品1',
-          foodExplain: '测试食品简介1',
-          foodPrice: 15
-        },
-        {
-          foodId: 2,
-          foodName: '测试食品2',
-          foodExplain: '测试食品简介2',
-          foodPrice: 20
-        },
-        {
-          foodId: 3,
-          foodName: '测试食品3',
-          foodExplain: '测试食品简介3',
-          foodPrice: 25
-        }
-      ],
-      showAddFoodModal: false,
-      showEditFoodModal: false,
+      foodList: [],
+      showFoodModal: false,
+      isEditMode: false,
       currentFood: {
-        foodId: null,
+        id: null,
         foodName: '',
         foodExplain: '',
-        foodPrice: ''
+        foodPrice: '',
+        business: null
       },
-
+      
       // 数据管理相关
       statistics: {
         totalOrders: 125,
@@ -397,134 +212,150 @@ export default {
       ]
     }
   },
+
   mounted() {
     this.checkAdminAuth();
+    this.loadBusinessInfo();
   },
   methods: {
     checkAdminAuth() {
+      // 可以在这里做一些权限验证，比如检查localStorage中是否有token
       this.adminName = '商家管理员';
     },
     
-    switchTab(tab) {
-      this.currentTab = tab;
-    },
-    
-    logout() {
-      if (confirm('确定要退出登录吗？')) {
-        this.$router.push('/login');
-      }
-    },
-    
-    // 订单管理方法
-    loadOrders() {
-      console.log('加载订单列表');
-    },
-    
-    viewOrderDetails(order) {
-      this.currentOrder = { ...order };
-      this.showOrderDetailModal = true;
-    },
-    
-    confirmOrder(orderId) {
-      if (confirm('确定要接单吗？')) {
-        const order = this.orderList.find(o => o.orderId === orderId);
-        if (order) {
-          order.orderStatus = 3;
+    //jinfeng 改的，用来开发，应付一下商家不能登陆情况
+     async loadBusinessInfo() {
+      try {
+        const response = await axios.get('/api/businesses/my');
+        if (response.data.code === 200 && response.data.data.length > 0) {
+          // 正常流程：如果后端返回了商家数据，就使用它
+          this.business = response.data.data[0];
+          await this.loadFoods();
+          console.log("成功加载真实的商家信息:", this.business);
+        } else {
+          // 获取成功，但该用户无商家数据时的临时逻辑
+          console.warn('当前用户没有关联的商家，将使用临时测试数据。');
+          this.useMockBusinessForTesting();
         }
-        alert('接单成功！');
-        this.closeOrderDetailModal();
+      } catch (error) {
+        // API请求失败时的临时逻辑
+        console.error('加载商家信息API失败，将使用临时测试数据。', error);
+        this.useMockBusinessForTesting();
       }
     },
-    
-    closeOrderDetailModal() {
-      this.showOrderDetailModal = false;
-    },
-    
-    prevOrderPage() {
-      if (this.orderPage > 1) {
-        this.orderPage--;
-        this.loadOrders();
-      }
-    },
-    
-    nextOrderPage() {
-      this.orderPage++;
-      this.loadOrders();
-    },
-    
-    formatDateTime(datetime) {
-      if (!datetime) return '';
-      return new Date(datetime).toLocaleString();
-    },
-    
-    getOrderStatusText(status) {
-      const statusMap = {
-        1: '待支付',
-        2: '已支付',
-        3: '已接单',
-        4: '配送中',
-        5: '已完成',
-        6: '已取消'
-      };
-      return statusMap[status] || '未知状态';
-    },
-    
-    getOrderStatusClass(status) {
-      const classMap = {
-        1: 'status-pending',
-        2: 'status-paid',
-        3: 'status-accepted',
-        4: 'status-delivering',
-        5: 'status-completed',
-        6: 'status-canceled'
-      };
-      return classMap[status] || 'status-unknown';
-    },
-    
-    // 食品管理方法
-    editFood(food) {
-      this.currentFood = { ...food };
-      this.showEditFoodModal = true;
-    },
-    
-    deleteFood(foodId) {
-      if (confirm('确定要删除这个食品吗？')) {
-        this.foodList = this.foodList.filter(f => f.foodId !== foodId);
-        alert('删除成功！');
-      }
-    },
-    
-    saveFood() {
-      if (!this.currentFood.foodName.trim()) {
-        alert('请输入食品名称');
-        return;
-      }
 
-      const isEdit = this.showEditFoodModal;
+    // jinfeng 新增这个方法，用于创建测试数据 ++
+    async useMockBusinessForTesting() {
+      // 这里我们创建了一个假的商家对象，让页面可以继续渲染和操作。
+      // id: 1 是一个假设值，你可以根据你的数据库情况修改。
+      this.business = { id: 1, businessName: '我的测试店铺' };
       
-      if (isEdit) {
-        const index = this.foodList.findIndex(f => f.foodId === this.currentFood.foodId);
-        if (index !== -1) {
-          this.foodList[index] = { ...this.currentFood };
-        }
-      } else {
-        this.currentFood.foodId = Math.max(...this.foodList.map(f => f.foodId)) + 1;
-        this.foodList.push({ ...this.currentFood });
-      }
+      // 警告：为了让“新增/修改食品”功能最终能成功保存到数据库，
+      // 你需要确保数据库的 business 表里真的有一个 id 为 1 的商家，
+      // 并且这个商家的 business_owner_id 指向你当前登录的测试用户。
       
-      alert(isEdit ? '编辑成功！' : '新增成功！');
-      this.closeFoodModal();
+      console.log('已启用临时商家数据进行测试:', this.business);
+      
+      // 使用模拟的商家信息去加载食品列表
+      // 注意：/api/foods/my 接口仍然会去后台查询真实数据
+      // 如果你的测试用户没有任何食品，列表会是空的，这是正常的。
+      await this.loadFoods();
     },
     
-    closeFoodModal() {
-      this.showAddFoodModal = false;
-      this.showEditFoodModal = false;
+    // 加载食品列表
+    async loadFoods() {
+      if (!this.business) return;
+      try {
+        const response = await axios.get('/api/foods/my');
+        if (response.data.code === 200) {
+          this.foodList = response.data.data;
+        } else {
+          alert('加载食品列表失败: ' + response.data.message);
+        }
+      } catch (error) {
+        console.error('加载食品列表失败', error);
+        alert('加载食品列表失败');
+      }
+    },
+
+    // 打开新增模态框
+    openAddFoodModal() {
+      this.isEditMode = false;
       this.currentFood = {
-        foodId: null,
+        id: null,
         foodName: '',
         foodExplain: '',
-        foodPrice: ''
+        foodPrice: '',
       };
+      this.showFoodModal = true;
+    },
+
+    // 打开编辑模态框
+    openEditFoodModal(food) {
+      this.isEditMode = true;
+      this.currentFood = { ...food };
+      this.showFoodModal = true;
+    },
+    
+    // 关闭模态框
+    closeFoodModal() {
+      this.showFoodModal = false;
+    },
+
+    // 保存食品（新增或更新）
+    async saveFood() {
+        if (!this.business) {
+        alert("商家信息未加载，无法保存食品！");
+        return;
+      }
+      if (!this.currentFood.foodName || !this.currentFood.foodPrice) {
+        alert('食品名称和价格不能为空');
+        return;
+      }
+      
+      try {
+        let response;
+        if (this.isEditMode) {
+          // 编辑模式
+          response = await axios.put(`/api/foods/${this.currentFood.id}`, this.currentFood);
+        } else {
+          // 新增模式
+          const newFood = {
+              ...this.currentFood,
+              business: { id: this.business.id }
+          }
+          response = await axios.post('/api/foods', newFood);
+        }
+
+        if (response.data.code === 200) {
+          alert(this.isEditMode ? '更新成功' : '新增成功');
+          this.closeFoodModal();
+          this.loadFoods(); // 刷新列表
+        } else {
+          alert('操作失败: ' + response.data.message);
+        }
+      } catch (error) {
+        console.error('保存食品失败', error);
+        alert('操作失败: ' + error.response.data.message);
+      }
+    },
+
+    // 删除食品
+    async deleteFood(foodId) {
+      if (confirm('确定要删除这个食品吗？')) {
+        try {
+          const response = await axios.delete(`/api/foods/${foodId}`);
+          if (response.data.code === 200) {
+            alert('删除成功');
+            this.loadFoods(); // 刷新列表
+          } else {
+            alert('删除失败: ' + response.data.message);
+          }
+        } catch (error) {
+          console.error('删除食品失败', error);
+          alert('删除失败');
+        }
+      }
     },
     
     // 数据管理方法
@@ -538,10 +369,20 @@ export default {
     
     getChangeIcon(change) {
       return change >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+    },
+
+    switchTab(tab) {
+      this.currentTab = tab;
+    },
+    logout() {
+      // 退出登录逻辑
+      this.$router.push('/login');
     }
   }
 }
 </script>
+
+
 
 <style scoped>
 /* 基础样式 */
@@ -705,6 +546,15 @@ header {
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   margin-bottom: 20px;
+}
+
+.loading-message, .error-message {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #666;
+  background-color: #fff;
+  border-radius: 8px;
 }
 
 .list-header,

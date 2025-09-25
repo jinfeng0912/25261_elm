@@ -2,10 +2,15 @@ package cn.edu.tju.elm.controller;
 
 import cn.edu.tju.core.model.HttpResult;
 import cn.edu.tju.core.model.ResultCodeEnum;
+import cn.edu.tju.core.security.service.UserService;
 import cn.edu.tju.elm.model.Business;
 import cn.edu.tju.elm.service.BusinessService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import io.swagger.v3.oas.annotations.Operation;
+
+import java.util.List;
 
 import java.util.List;
 import java.util.Map; // 导入 Map
@@ -16,6 +21,9 @@ public class BusinessController {
 
     @Autowired
     private BusinessService businessService;
+
+    @Autowired
+    private UserService userService; // 确保注入了 UserService
 
     @GetMapping
     public HttpResult<List<Business>> getBusinesses() {
@@ -76,5 +84,26 @@ public class BusinessController {
             return HttpResult.failure(ResultCodeEnum.NOT_FOUND, "店铺不存在");
         }
     }
+
+
+    // jinfeng 新增/my这个接口
+    @GetMapping("/my")
+    @Operation(summary = "获取我的商家信息", method = "GET")
+    public HttpResult<List<Business>> getMyBusiness() {
+        try {
+            var currentUser = userService.getUserWithAuthorities();
+            if (currentUser.isEmpty()) {
+                return HttpResult.failure(ResultCodeEnum.SERVER_ERROR, "用户未登录");
+            }
+
+            List<Business> businesses = businessService.getBusinessesByUser(currentUser.get());
+            return HttpResult.success(businesses);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return HttpResult.failure(ResultCodeEnum.SERVER_ERROR, "获取我的商家失败: " + e.getMessage());
+        }
+    }
+
+
 
 }

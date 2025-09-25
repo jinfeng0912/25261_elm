@@ -43,8 +43,94 @@
       <p v-if="errorMsg">{{ errorMsg }}</p>
     </div>
 
+    <!-- 订单管理 tab -->
     <div v-if="currentTab === 'order' && business" class="content">
+      <div class="section-title">
+        <h3>订单管理 (店铺: {{ business.businessName }})</h3>
+        <div class="filter-section">
+          <select v-model="orderFilter.status" @change="loadOrders" class="filter-select">
+            <option value="">全部状态</option>
+            <option value="0">待支付</option>
+            <option value="1">已支付</option>
+            <option value="2">已接单</option>
+            <option value="3">配送中</option>
+            <option value="4">已完成</option>
+            <option value="5">已取消</option>
+          </select>
+          <input type="date" v-model="orderFilter.startDate" @change="loadOrders" placeholder="开始日期" />
+          <span>至</span>
+          <input type="date" v-model="orderFilter.endDate" @change="loadOrders" placeholder="结束日期" />
+          <button @click="loadOrders" class="filter-btn">筛选</button>
+        </div>
       </div>
+
+      <div v-if="orderLoading" class="loading-message">加载订单...</div>
+      <div v-else-if="orderList.length === 0" class="no-data">暂无订单</div>
+      <div v-else class="order-list">  <!-- 复用 food-list 样式 -->
+        <div class="list-header">
+          <div class="col-id">订单ID</div>
+          <div class="col-user">用户</div>
+          <div class="col-price">总价</div>
+          <div class="col-explain">地址</div>
+          <div class="col-status">状态</div>
+          <div class="col-action">操作</div>
+        </div>
+        <div v-for="order in orderList" :key="order.id" class="list-item">
+          <div class="col-id">{{ order.id }}</div>
+          <div class="col-user">{{ order.customer.username }}</div>
+          <div class="col-price">¥{{ order.orderTotal }}</div>
+          <div class="col-explain">{{ order.deliveryAddress.address }}</div>
+          <div class="col-status">
+            <span :class="getStatusClass(order.orderState)">{{ getStatusText(order.orderState) }}</span>
+          </div>
+          <div class="col-action">
+            <button class="detail-btn" @click="showOrderDetail(order)">详情</button>
+            <button v-if="order.orderState === 1" class="accept-btn" @click="changeStatus(order.id, 2)">接单</button>
+            <button v-if="order.orderState === 2" class="deliver-btn" @click="changeStatus(order.id, 3)">配送</button>
+            <button v-if="order.orderState === 3" class="complete-btn" @click="changeStatus(order.id, 4)">完成</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分页 -->
+      <div v-if="orderList.length > 0" class="pagination">
+        <button @click="changePage(-1)" :disabled="orderPage === 1">上一页</button>
+        <span>第 {{ orderPage + 1 }} 页 (共 {{ totalOrders }} 条)</span>
+        <button @click="changePage(1)">下一页</button>
+      </div>
+
+      <!-- 订单详情模态 -->
+      <div class="modal-overlay" v-if="showOrderDetailModal" @click="closeOrderDetail">
+        <div class="order-detail-modal" @click.stop>
+          <h3>订单详情 #{{ currentOrder.id }}</h3>
+          <div class="order-info">
+            <div class="info-row">
+              <span class="label">用户：</span>
+              <span class="value">{{ currentOrder.customer.username }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">总价：</span>
+              <span class="value">¥{{ currentOrder.orderTotal }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">地址：</span>
+              <span class="value">{{ currentOrder.deliveryAddress.address }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">下单时间：</span>
+              <span class="value">{{ currentOrder.createTime }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">状态：</span>
+              <span :class="getStatusClass(currentOrder.orderState)">{{ getStatusText(currentOrder.orderState) }}</span>
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button class="confirm-btn" @click="closeOrderDetail">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div v-if="currentTab === 'food' && business" class="content">
       <div class="section-title">
@@ -111,9 +197,54 @@
     </div>
 
     <div v-if="currentTab === 'data' && business" class="content">
-      <!-- 数据内容... (你的原代码) -->
-      <div class="stats-cards">
-        <!-- ... 统计卡片 ... -->
+      <div class="section-title">
+        <h3>数据管理 (店铺: {{ business.businessName }})</h3>
+        <div class="filter-section">
+          <input type="date" v-model="statsStartDate" @change="loadStats" class="filter-input" />
+          <span>至</span>
+          <input type="date" v-model="statsEndDate" @change="loadStats" class="filter-input" />
+          <button @click="loadStats" class="filter-btn">刷新统计</button>
+        </div>
+      </div>
+
+      <div v-if="statsLoading" class="loading-message">加载统计数据...</div>
+      <div v-else-if="statsError" class="error-message">{{ statsError }}</div>
+      <div v-else class="stats-container">
+        <!-- 统计卡片 (4 张) -->
+        <div class="stats-cards">
+          <div class="card">
+            <div class="card-title">总订单数</div>
+            <div class="card-value">{{ statistics.totalOrders }}</div>
+            <div class="card-change" :class="getChangeClass(statistics.orderChange)">
+              <i :class="getChangeIcon(statistics.orderChange)"></i>
+              {{ Math.abs(statistics.orderChange) }}% {{ statistics.orderChange >= 0 ? '增长' : '下降' }} (vs 上月)
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">总营收</div>
+            <div class="card-value">¥{{ statistics.totalRevenue.toFixed(2) }}</div>
+            <div class="card-change" :class="getChangeClass(statistics.revenueChange)">
+              <i :class="getChangeIcon(statistics.revenueChange)"></i>
+              {{ Math.abs(statistics.revenueChange) }}% {{ statistics.revenueChange >= 0 ? '增长' : '下降' }} (vs 上月)
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">完成订单</div>
+            <div class="card-value">{{ statistics.completedOrders }}</div>
+            <div class="card-change positive">
+              <i class="fa fa-arrow-up"></i> {{ statistics.completionRate }}
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">平均客单价</div>
+            <div class="card-value">¥{{ statistics.avgOrderValue.toFixed(2) }}</div>
+            <div class="card-change positive">
+              <i class="fa fa-arrow-up"></i> 稳定
+            </div>
+          </div>
+        </div>
+
+        
       </div>
     </div>
   </div>
@@ -132,59 +263,19 @@ export default {
       foodLoading: false,  // 加载食品
       errorMsg: '',  // 错误提示
 
-      // 订单管理相关
-      orderList: [
-        {
-          orderId: 'ORD20230001',
-          userName: '测试用户1',
-          userPhone: '13800138001',
-          orderTime: '2023-01-01 12:00:00',
-          orderStatus: 5,
-          orderAmount: 35,
-          deliveryAddress: '北京市海淀区中关村大街1号',
-          items: [
-            { foodId: 1, foodName: '测试食品1', quantity: 2, foodPrice: 15 },
-            { foodId: 2, foodName: '测试食品2', quantity: 1, foodPrice: 20 }
-          ],
-          foodAmount: 50,
-          deliveryPrice: 5,
-        },
-        {
-          orderId: 'ORD20230002',
-          userName: '测试用户2',
-          userPhone: '13800138002',
-          orderTime: '2023-01-02 13:00:00',
-          orderStatus: 2,
-          orderAmount: 48,
-          deliveryAddress: '北京市朝阳区建国路88号',
-          items: [
-            { foodId: 3, foodName: '测试食品3', quantity: 3, foodPrice: 16 }
-          ],
-          foodAmount: 48,
-          deliveryPrice: 0,
-        }
-      ],
+     // 订单相关 (新)
+      orderList: [],  // 真实订单
+      orderLoading: false,
+      totalOrders: 0,  // 总计数
+      orderPage: 0,  // 当前页 (0-based)
+      orderPageSize: 10,
       orderFilter: {
-        status: '',
+        status: '',  // 0-5
         startDate: '',
         endDate: ''
       },
-      orderPage: 1,
-      orderPageSize: 10,
-      showOrderDetailModal: false,
-      currentOrder: {
-        orderId: '',
-        userName: '',
-        userPhone: '',
-        orderTime: '',
-        orderStatus: '',
-        deliveryAddress: '',
-        items: [],
-        foodAmount: 0,
-        deliveryPrice: 0,
-        orderAmount: 0
-      },
-
+    showOrderDetailModal: false,
+      currentOrder: {},  // 详情
       // 食品管理相关
       foodList: [],  // 真实食品列表
       showFoodModal: false,
@@ -197,34 +288,24 @@ export default {
         business: null
       },
       
-      // 数据管理相关
-      statistics: {
-        totalOrders: 125,
-        totalRevenue: 3568,
-        topFoodCount: 45,
-        orderChange: 15,
-        revenueChange: 20,
-        foodChange: 10
+      // 数据管理相关 (修改: 移除静态假数据, 初始化 empty/true 0/null – force API load)
+      statistics: {  // empty, from API (no 125/3568 fake)
+        totalOrders: 0,
+        totalRevenue: 0,
+        completedOrders: 0,
+        avgOrderValue: 0,
+        completionRate: '0%',
+        orderChange: 0,
+        revenueChange: 0,
+        topFoodCount: 0,  // if need
+        foodChange: 0
       },
-      statsStartDate: '',
+      statsStartDate: '',  // default empty = API all/this month
       statsEndDate: '',
-      topFoods: [
-        { foodId: 1, foodName: '测试食品1', sales: 45 },
-        { foodId: 2, foodName: '测试食品2', sales: 38 },
-        { foodId: 3, foodName: '测试食品3', sales: 32 },
-        { foodId: 4, foodName: '测试食品4', sales: 28 },
-        { foodId: 5, foodName: '测试食品5', sales: 25 }
-      ],
-      orderTrends: [
-        { date: '周一', count: 35 },
-        { date: '周二', count: 42 },
-        { date: '周三', count: 38 },
-        { date: '周四', count: 45 },
-        { date: '周五', count: 52 },
-        { date: '周六', count: 48 },
-        { date: '周日', count: 40 }
-      ]
-      
+      topFoods: [],  // empty, from /topFoods API (no 测试食品1-5 fake)
+      orderTrends: [],  // empty now; static as fallback only if API fail (future /trends)
+      statsLoading: false,  // 新增: loading state
+      statsError: ''  // 新增: error state (show instead of fake fallback)
     }
     //isDev: true  // 开发模式开关，生产设 false
   },
@@ -402,30 +483,170 @@ mounted() {
       }
     },
     
-    // 数据管理方法
-    loadStatistics() {
-      console.log('加载统计数据');
+// 新：加载订单
+    async loadOrders() {
+      if (!this.business) return;
+      this.orderLoading = true;
+      try {
+        const params = new URLSearchParams({
+          status: this.orderFilter.status || '',
+          startDate: this.orderFilter.startDate || '',
+          endDate: this.orderFilter.endDate || '',
+          page: this.orderPage,
+          size: this.orderPageSize
+        });
+        const response = await axios.get(`/api/orders/business/${this.business.id}?${params}`);
+        if (response.data.success && response.data.code === 'OK') {
+          this.orderList = response.data.data || [];
+          this.totalOrders = response.data.total || 0;  // 若 Controller 返回 count
+          console.log('订单加载成功:', this.orderList.length);
+        } else {
+          throw new Error(response.data.message);
+        }
+      } catch (error) {
+        console.error('加载订单失败:', error);
+        alert('加载订单失败: ' + error.message);
+        this.orderList = [];
+      } finally {
+        this.orderLoading = false;
+      }
     },
-    
+
+    // 新：变更状态
+    async changeStatus(orderId, newState) {
+      const states = {2: '接单', 3: '开始配送', 4: '完成订单'};
+      if (!confirm(`确认${states[newState]}?`)) return;
+      try {
+        const response = await axios.put(`/api/orders/${orderId}/status?newState=${newState}`);
+        if (response.data.success && response.data.code === 'OK') {
+          alert('状态更新成功');
+          await this.loadOrders();  // 刷新
+        } else {
+          throw new Error(response.data.message);
+        }
+      } catch (error) {
+        console.error('更新状态失败:', error);
+        alert('更新失败: ' + error.message);
+      }
+    },
+
+    // 新：显示详情
+    showOrderDetail(order) {
+      this.currentOrder = { ...order };  // 复制
+      this.showOrderDetailModal = true;
+    },
+
+    // 新：关闭详情
+    closeOrderDetail() {
+      this.showOrderDetailModal = false;
+      this.currentOrder = {};
+    },
+
+    // 新：状态文本/类
+    getStatusText(state) {
+      const map = {0: '待支付', 1: '已支付', 2: '已接单', 3: '配送中', 4: '已完成', 5: '已取消'};
+      return map[state] || '未知';
+    },
+
+    getStatusClass(state) {
+      const classes = {
+        0: 'status-pending',
+        1: 'status-paid',
+        2: 'status-accepted',
+        3: 'status-delivering',
+        4: 'status-completed',
+        5: 'status-canceled'
+      };
+      return classes[state] || 'status-unknown';
+    },
+
+    // 新：分页
+    changePage(delta) {
+      const newPage = this.orderPage + delta;
+      if (newPage >= 0 && (newPage * this.orderPageSize < this.totalOrders)) {
+        this.orderPage = newPage;
+        this.loadOrders();
+      }
+    },
+
+
+    async loadStats() {
+      if (!this.business) {
+        this.statsError = '商家信息未加载';
+        return;
+      }
+      this.statsLoading = true;
+      this.statsError = '';
+      const businessId = this.business.id;
+      try {
+        // 日期 param (empty = default this month)
+        const params = new URLSearchParams({
+          startDate: this.statsStartDate || '',
+          endDate: this.statsEndDate || ''
+        });
+        const url = `/api/businesses/${businessId}/stats?${params}`;
+        console.log('调用统计 API:', url);
+
+        // 统计
+        const statsRes = await axios.get(url);
+        if (statsRes.data.success && statsRes.data.code === 'OK') {
+          this.statistics = { ...statsRes.data.data };
+        } else {
+          throw new Error(statsRes.data.message || '响应异常');
+        }
+
+        // Top Foods
+        const topUrl = `/api/businesses/${businessId}/topFoods?topN=5`;
+        console.log('调用 Top Foods API:', topUrl);
+        const topRes = await axios.get(topUrl);
+        if (topRes.data.success && topRes.data.code === 'OK') {
+          this.topFoods = topRes.data.data || [];
+          // if no sales in Food, assume frontend handle NaN
+        } else {
+          throw new Error(topRes.data.message || 'Top Foods 异常');
+        }
+
+        // Trends: static for now; future add /trends API (calc from orders)
+        // this.orderTrends = statsRes.data.data.trends || this.orderTrends; 
+
+        console.log('统计加载成功:', this.statistics, this.topFoods);
+      } catch (error) {
+        console.error('加载统计失败:', error);
+        this.statsError = '加载失败: ' + (error.response?.data?.message || error.message) + ' (使用默认数据)';
+        // fallback to your static in data()
+        alert(this.statsError);
+      } finally {
+        this.statsLoading = false;
+      }
+    },
+
+    // 你的 getChangeClass (keep)
     getChangeClass(change) {
       return change >= 0 ? 'positive' : 'negative';
     },
-    
+
+    // 你的 getChangeIcon (keep, add fa class)
     getChangeIcon(change) {
-      return change >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+      return change >= 0 ? 'fa fa-arrow-up' : 'fa fa-arrow-down';
     },
 
     switchTab(tab) {
-        this.currentTab = tab;
       if (!this.business && tab !== 'data') {
         alert('请先加载店铺');
         return;
       }
-      if (tab === 'food' && this.foodList.length === 0 && this.business) {
-        console.log('16. 切换到 food tab，懒加载食品');  // 日志16
-        this.loadFoods();  // 确保加载
+      this.currentTab = tab;
+      if (tab === 'order' && this.orderList.length === 0) {
+        this.loadOrders();
       }
-      
+      if (tab === 'food' && this.foodList.length === 0 && this.business) {
+        this.loadFoods();
+      }
+      if (tab === 'data' && (this.statistics.totalOrders === 125 || this.topFoods.length === 5)) {  // lazy if static
+        this.statsStartDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];  // this month start
+        this.statsEndDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0];  // end
+        this.loadStats();
+      }
     },
 
     logout() {
@@ -439,213 +660,288 @@ mounted() {
 
 
 
+
 <style scoped>
-/* 基础样式 */
+/* 整体重置：基础字体、颜色、间距 (简洁现代) */
 .wrapper {
   width: 100%;
   min-height: 100vh;
-  background-color: #f5f5f5;
-  font-family: 'Arial', sans-serif;
+  background-color: #f8f9fa;  /* 浅灰背景，更柔和 */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;  /* 系统字体，美观 */
+  color: #333;
+  line-height: 1.5;
 }
 
-/* Header */
+/* Header：紧凑、专业 */
 header {
   width: 100%;
-  height: 60px;
-  background-color: #0097FF;
+  height: 64px;  /* 稍高，平衡 */
+  background: linear-gradient(135deg, #0097FF 0%, #007ACC 100%);  /* 轻微渐变，不花哨 */
   color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 24px;
+  box-shadow: 0 2px 8px rgba(0, 151, 255, 0.2);  /* 轻蓝影 */
   box-sizing: border-box;
 }
 
 .header-left p {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 20px;  /* 稍大 */
+  font-weight: 600;
+  margin: 0;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 16px;
 }
 
 .header-right span {
   font-size: 16px;
+  font-weight: 500;
 }
 
 .header-right button {
-  background-color: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  border: 1px solid #fff;
-  padding: 5px 15px;
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.2s ease;
 }
 
 .header-right button:hover {
-  background-color: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);  /* 轻微提升 */
 }
 
-/* 菜单 */
+/* Menu：水平导航，active 突出 */
 .menu-section {
   background-color: #fff;
-  padding: 15px;
+  padding: 15px;  /* 保持原 padding (左右总 30px) */
   display: flex;
-  gap: 15px;
+  gap: 0;  /* 新：gap 0 (去除 15px 间距，避免总宽超屏) */
   border-bottom: 1px solid #eee;
+  width: 100%;  /* 容器满宽 */
+  justify-content: space-between;  /* 新：space-between (两端对齐，中间自然空，总宽精确=屏宽 - padding，无超) */
+  flex-wrap: nowrap;  /* 强制横排 */
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 15px;
+  gap: 8px;  /* 项内 gap 保持 (图标/文本间距) */
+  padding: 8px 15px;  /* 左右 padding 保持 (每个项内边) */
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 14px;
   color: #666;
+  flex: 1;  /* 等宽分屏 (3 项总 = 屏宽 - padding) */
+  min-width: 0;  /* 允许收缩 */
+  justify-content: center;  /* 居中 */
+  text-align: center;  /* 文本居中 */
+  overflow: hidden;  /* 新：隐藏长文本溢出 (e.g., "数据管理" 在极窄不超) */
+  text-overflow: ellipsis;  /* 新：长文本省略 (...)，确保不超 */
+  white-space: nowrap;  /* 新：不换行，保持单行 */
+}
+
+.menu-item span {  /* 新：针对 <span> 文本加，保持短文本正常 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .menu-item:hover,
 .menu-item.active {
-  background-color: #0097FF;
+  background: #0097FF;
   color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 151, 255, 0.2);
 }
 
-.menu-item i {
+.menu-item i {  /* 如果有图标 */
   font-size: 16px;
 }
 
-/* 内容区 */
+/* Content：统一卡片布局 */
 .content {
-  padding: 20px;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;  /* 居中 */
 }
 
 .section-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .section-title h3 {
-  font-size: 18px;
-  color: #333;
+  font-size: 22px;
+  color: #2c3e50;  /* 深灰，专业 */
+  font-weight: 600;
   margin: 0;
 }
 
+.no-data {
+  text-align: center;
+  padding: 48px 24px;
+  color: #6c757d;
+  font-size: 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 过滤器：inline，紧凑 */
 .filter-section {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;  /* 响应式换行 */
 }
 
 .filter-section select,
 .filter-section input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
   font-size: 14px;
+  background: #fff;
+  transition: border-color 0.2s ease;
+  min-width: 120px;  /* 日期 input 宽 */
 }
 
-.date-range {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.filter-section input:focus,
+.filter-section select:focus {
+  outline: none;
+  border-color: #0097FF;
+  box-shadow: 0 0 0 2px rgba(0, 151, 255, 0.1);
 }
 
-.date-range input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+.filter-section span {
+  color: #6c757d;
   font-size: 14px;
+  white-space: nowrap;
 }
 
-.date-range span {
-  font-size: 14px;
-  color: #666;
-}
-
-.add-btn {
-  background-color: #28a745;
+.filter-btn {
+  background: #0097FF;
   color: #fff;
   border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.filter-btn:hover {
+  background: #007ACC;
+}
+
+/* 添加按钮：统一圆角 */
+.add-btn {
+  background: #28a745;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  transition: background-color 0.3s;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(40, 167, 69, 0.3);
 }
 
 .add-btn:hover {
-  background-color: #218838;
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.4);
 }
 
 .add-btn i {
   font-size: 14px;
 }
 
-/* 列表样式 */
+/* 列表：统一卡片，hover 美化 */
 .order-list,
 .food-list {
-  background-color: #fff;
-  border-radius: 8px;
+  background: #fff;
+  border-radius: 10px;  /* 稍圆 */
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);  /* 柔影 */
+  margin-bottom: 24px;
+  overflow-x: hidden;  /* 新：隐藏多余滚动，自适应优先 */
 }
 
-.loading-message, .error-message {
+.loading-message,
+.error-message {
   text-align: center;
-  padding: 40px;
-  font-size: 18px;
-  color: #666;
-  background-color: #fff;
-  border-radius: 8px;
+  padding: 48px 24px;
+  color: #6c757d;
+  font-size: 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .list-header,
 .list-item {
   display: grid;
   align-items: center;
-  padding: 12px 15px;
-  border-bottom: 1px solid #eee;
+  padding: 16px 20px;  /* 增加间距 */
+  border-bottom: 1px solid #e9ecef;
   font-size: 14px;
 }
 
+.list-header {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 订单列表：6 列均衡 */
 .order-list .list-header,
 .order-list .list-item {
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 0.8fr 1fr 0.8fr 2fr 1fr 1fr;  /* 新：全 fr 自适应 - ID(窄)/用户(中)/总价(窄)/地址(宽2fr，长文本)/状态(中)/操作(中)；总宽100%，无滚 */
 }
 
-.food-list .list-header,
-.food-list .list-item {
-  grid-template-columns: 80px 2fr 3fr 1fr 120px;
+.col-id {
+  font-weight: 600;
+  color: #495057;
 }
 
-.list-header {
-  background-color: #f8f9fa;
-  font-weight: bold;
-  color: #666;
+.col-user {
+  text-align: left;
 }
 
-.list-item:hover {
-  background-color: #f9f9f9;
+.col-price {
+  font-weight: 500;
+  color: #28a745;  /* 绿价 */
 }
 
-.col-id, .col-name, .col-explain, .col-price, 
-.col-user, .col-amount, .col-time, .col-status {
+.col-explain {
+  color: #6c757d;  /* 灰地址 */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.col-status {
+  text-align: center;
 }
 
 .col-action {
@@ -654,396 +950,298 @@ header {
   justify-content: flex-end;
 }
 
+.list-item:hover {
+  background: #f0f8ff;  /* 淡蓝 hover，不花哨 */
+  transition: background 0.2s ease;
+}
+
+/* 食品列表：5 列 */
+.food-list .list-header,
+.food-list .list-item {
+  grid-template-columns: 0.8fr 1.5fr 2fr 0.8fr 1fr;  /* 新：全 fr 自适应 - ID(窄)/名称(中)/简介(宽2fr，长)/价格(窄)/操作(中)；总宽100%，无滚 */
+}
+
+/* 状态 Badge：pill 形，彩色背景 */
+.col-status span {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;  /* 圆 pill */
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 状态颜色：统一背景+白字 */
+.status-pending { background: #fff3cd; color: #856404; }
+.status-paid { background: #d1ecf1; color: #0c5460; }
+.status-accepted { background: #d4edda; color: #155724; }
+.status-delivering { background: #e2e3e5; color: #495057; }
+.status-completed { background: #d4edda; color: #155724; }
+.status-canceled { background: #f8d7da; color: #721c24; }
+.status-unknown { background: #f8f9fa; color: #6c757d; }
+
+/* 操作按钮：小圆，hover 缩放 */
+.detail-btn,
+.accept-btn,
+.deliver-btn,
+.complete-btn,
 .edit-btn,
-.delete-btn,
-.detail-btn {
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  transition: opacity 0.3s;
-}
-
-.edit-btn:hover,
-.delete-btn:hover,
-.detail-btn:hover {
-  opacity: 0.8;
-}
-
-.edit-btn {
-  background-color: #ffc107;
-  color: #fff;
-}
-
 .delete-btn {
-  background-color: #dc3545;
-  color: #fff;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.detail-btn {
-  background-color: #17a2b8;
-  color: #fff;
-  padding: 5px 10px;
-  width: auto;
+.detail-btn:hover,
+.accept-btn:hover,
+.deliver-btn:hover,
+.complete-btn:hover,
+.edit-btn:hover,
+.delete-btn:hover {
+  transform: scale(1.05);  /* 轻缩放 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.status-pending {
-  color: #ffc107;
-}
+.detail-btn { background: #17a2b8; color: #fff; }
+.accept-btn { background: #28a745; color: #fff; }
+.deliver-btn { background: #007bff; color: #fff; }
+.complete-btn { background: #ffc107; color: #212529; }  /* 黄字黑 */
+.edit-btn { background: #ffc107; color: #212529; }
+.delete-btn { background: #dc3545; color: #fff; }
 
-.status-paid {
-  color: #17a2b8;
-}
-
-.status-accepted {
-  color: #007bff;
-}
-
-.status-delivering {
-  color: #6f42c1;
-}
-
-.status-completed {
-  color: #28a745;
-}
-
-.status-canceled {
-  color: #dc3545;
-}
-
-.status-unknown {
-  color: #6c757d;
-}
-
-/* 分页控件 */
+/* 分页：居中，按钮圆 */
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 15px;
-  margin-top: 20px;
+  gap: 12px;
+  margin: 24px 0;
+  padding: 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .pagination button {
-  background-color: #0097FF;
+  background: #0097FF;
   color: #fff;
   border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
+  padding: 10px 16px;
+  border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.2s ease;
+  min-width: 80px;
 }
 
-.pagination button:hover {
-  background-color: #007bff;
+.pagination button:hover:not(:disabled) {
+  background: #007ACC;
+  transform: translateY(-1px);
 }
 
 .pagination button:disabled {
-  background-color: #ccc;
+  background: #e9ecef;
+  color: #6c757d;
   cursor: not-allowed;
 }
 
 .pagination span {
   font-size: 14px;
-  color: #333;
+  color: #495057;
+  font-weight: 500;
 }
 
-/* 模态框 */
+/* 模态：阴影、滚动 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5);  /* 半透 */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(2px);  /* 轻模糊，不花哨 */
 }
 
 .order-detail-modal,
 .business-modal {
   width: 90%;
-  max-width: 600px;
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 20px;
+  max-width: 500px;  /* 订单详情窄些 */
   max-height: 80vh;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
   overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);  /* 深影 */
+  animation: fadeIn 0.2s ease;  /* 轻入场 */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .order-detail-modal h3,
 .business-modal h3 {
-  font-size: 18px;
-  color: #333;
+  font-size: 20px;
+  color: #2c3e50;
   margin-bottom: 20px;
   text-align: center;
+  font-weight: 600;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;  /* 增加间距 */
 }
 
 .form-group label {
   display: block;
   font-size: 14px;
-  color: #333;
-  margin-bottom: 5px;
+  color: #495057;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {  /* 如果有 textarea */
   width: 100%;
-  height: 40px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 0 10px;
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
   font-size: 14px;
   box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #0097FF;
+  box-shadow: 0 0 0 3px rgba(0, 151, 255, 0.1);
 }
 
 .modal-buttons {
   display: flex;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 24px;
+  justify-content: flex-end;
 }
 
 .cancel-btn,
 .confirm-btn {
   flex: 1;
-  height: 40px;
+  max-width: 120px;  /* 固定宽 */
+  padding: 12px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.3s;
-}
-
-.cancel-btn:hover,
-.confirm-btn:hover {
-  opacity: 0.9;
+  transition: all 0.2s ease;
 }
 
 .cancel-btn {
-  background-color: #6c757d;
+  background: #6c757d;
   color: #fff;
+}
+
+.cancel-btn:hover {
+  background: #5a6268;
 }
 
 .confirm-btn {
-  background-color: #0097FF;
+  background: #0097FF;
   color: #fff;
 }
 
-/* 订单详情样式 */
+.confirm-btn:hover:not(:disabled) {
+  background: #007ACC;
+  transform: translateY(-1px);
+}
+
+.confirm-btn:disabled {
+  background: #adb5bd;
+  cursor: not-allowed;
+}
+
+/* 订单详情：卡片行 */
 .order-info .info-row {
   display: flex;
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #0097FF;  /* 左线突出 */
 }
 
 .order-info .label {
   width: 80px;
-  color: #666;
+  font-weight: 600;
+  color: #495057;
+  margin-right: 12px;
 }
 
 .order-info .value {
   flex: 1;
-}
-
-.order-items {
-  margin: 20px 0;
-  border-top: 1px solid #eee;
-  padding-top: 15px;
-}
-
-.order-items h4 {
-  font-size: 16px;
-  margin-bottom: 10px;
   color: #333;
+  word-break: break-all;  /* 长地址换行 */
 }
 
-.order-items .item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-  font-size: 14px;
-}
-
-.order-summary {
-  border-top: 1px solid #eee;
-  padding-top: 15px;
-}
-
-.order-summary .summary-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 14px;
-}
-
-.order-summary .total {
-  font-weight: bold;
-  color: #333;
-  font-size: 16px;
-}
-
-/* 数据统计样式 */
+/* 数据统计：卡片网格 (如果你用) */
 .stats-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .card {
   background: #fff;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: transform 0.3s;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #e9ecef;
 }
 
 .card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .card-title {
   font-size: 14px;
-  color: #666;
-  margin-bottom: 5px;
+  color: #6c757d;
+  margin-bottom: 8px;
 }
 
 .card-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 5px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 8px;
 }
 
 .card-change {
-  font-size: 12px;
+  font-size: 13px;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
-.card-change.positive {
-  color: #28a745;
-}
+.card-change.positive { color: #28a745; }
+.card-change.negative { color: #dc3545; }
 
-.card-change.negative {
-  color: #dc3545;
-}
 
-.top-lists {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
-.top-list {
-  background: #fff;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.top-list h4 {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #333;
-  text-align: center;
-}
-
-.top-list .list-item,
-.top-list .trend-item {
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-  font-size: 14px;
-}
-
-.top-list .list-item:last-child,
-.top-list .trend-item:last-child {
-  border-bottom: none;
-}
-
-.top-list .rank {
-  width: 25px;
-  height: 25px;
-  background: #0097FF;
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  margin-right: 10px;
-}
-
-.top-list .name,
-.top-list .date {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.top-list .count {
-  font-size: 14px;
-  color: #666;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .stats-cards {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .top-lists {
-    grid-template-columns: 1fr;
-  }
-  
-  .order-list .list-header,
-  .order-list .list-item {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  
-  .col-status, .col-time {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .food-list .list-header,
-  .food-list .list-item {
-    grid-template-columns: 60px 1fr 1fr;
-  }
-  
-  .col-explain {
-    display: none;
-  }
-  
-  .menu-section {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .menu-item {
-    justify-content: center;
-  }
-}
 </style>

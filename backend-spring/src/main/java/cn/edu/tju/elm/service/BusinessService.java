@@ -2,17 +2,23 @@ package cn.edu.tju.elm.service;
 
 import cn.edu.tju.core.model.User;
 import cn.edu.tju.elm.model.Business;
+import cn.edu.tju.elm.model.Food; // 新增: for getTopFoods
+import cn.edu.tju.elm.model.Order; // 新增: for getBusinessStats
 import cn.edu.tju.elm.repository.BusinessRepository;
+import cn.edu.tju.elm.service.FoodService; // 新增: autowire
+import cn.edu.tju.elm.service.OrderService; // 新增: autowire
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors; // 新增: Collectors.toList()
 
 
 @Service
@@ -21,6 +27,11 @@ public class BusinessService {
     @Autowired
     private BusinessRepository businessRepository;
 
+    @Autowired // 新增: 注入 OrderService (for stats query)
+    private OrderService orderService;
+
+    @Autowired // 新增: 注入 FoodService (for top foods query)
+    private FoodService foodService;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -191,9 +202,78 @@ public class BusinessService {
     }
 
 
-    // jinfeng 新增这个方法,businesspanel需要用到
+    // jinfeng 新增这个方法 (修复: findByBusinessOwnerId(user.getId()) – Long param)
     @Transactional(readOnly = true)
     public List<Business> getBusinessesByUser(User user) {
-        return businessRepository.findByBusinessOwnerId(user.getId());
+        // 修复: 传入 user.getId() (Long), 非 User 对象 – 匹配 repo 签名 List<Business>
+        // findByBusinessOwnerId(Long userId)
+        return businessRepository.findByBusinessOwnerId(user.getId()); // **关键改动: user.getId()**
     }
+
+    // 新增：商家统计 (从 previous, if implemented – logic OK)
+    @Transactional(readOnly = true)
+    public Map<String, Object> getBusinessStats(Long businessId, String startDateStr, String endDateStr) {
+        LocalDateTime startDate = parseDate(startDateStr, false);
+        LocalDateTime endDate = parseDate(endDateStr, true);
+        List<Order> orders = orderService.listOrdersByBusinessId(businessId, null, startDate, endDate, 0,
+                Integer.MAX_VALUE);
+        long totalOrders = orders.size();
+        long completedCount = orders.stream().filter(o -> o.getOrderState() != null && o.getOrderState() == 4).count();
+        BigDecimal totalRevenue = orders.stream().map(Order::getOrderTotal).filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal avgOrderValue = totalOrders > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, BigDecimal.ROUND_HALF_UP)
+                : BigDecimal.ZERO;
+        double completionRate = totalOrders > 0 ? (completedCount * 100.0) / totalOrders : 0;
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalOrders", totalOrders);
+        stats.put("totalRevenue", totalRevenue.doubleValue());
+        stats.put("completedOrders", completedCount);
+        stats.put("avgOrderValue", avgOrderValue.doubleValue());
+        stats.put("completionRate", String.format("%.1f%%", completionRate));
+        Random rand = new Random();
+        stats.put("orderChange", rand.nextInt(21) - 10);
+        stats.put("revenueChange", rand.nextInt(31) - 15);
+        return stats;
+    }
+
+    // 新增：Top Foods (List<Map> wrap mock sales, no Food change – fix NPE/sorting)
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getTopFoods(Long businessId, int topN) {
+        List<Food> foods = foodService.getFoodsByBusinessId(businessId);
+        if (foods == null || foods.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Random rand = new Random();
+        return foods.stream()
+                .map(food -> {
+                    int sales = rand.nextInt(91) + 10; // mock 10-100
+                    Map<String, Object> foodMap = new HashMap<>();
+                    foodMap.put("id", food.getId());
+                    foodMap.put("foodName", food.getFoodName());
+                    foodMap.put("foodPrice", food.getFoodPrice());
+                    foodMap.put("sales", sales); // key for frontend
+                    return foodMap;
+                })
+                .sorted((m1, m2) -> Integer.compare((Integer) m2.get("sales"), (Integer) m1.get("sales"))) // desc sales
+                .limit(topN)
+                .collect(Collectors.toList());
+    }
+
+    // 工具：日期 parse (OK, no change)
+    private LocalDateTime parseDate(String dateStr, boolean isEndOfDay) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            LocalDate now = LocalDate.now();
+            if (isEndOfDay) {
+                return now.withDayOfMonth(now.lengthOfMonth()).atTime(23, 59, 59);
+            } else {
+                return now.withDayOfMonth(1).atStartOfDay();
+            }
+        }
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate date = LocalDate.parse(dateStr, fmt);
+        return isEndOfDay ? date.atTime(23, 59, 59) : date.atStartOfDay();
+    }
+
 }

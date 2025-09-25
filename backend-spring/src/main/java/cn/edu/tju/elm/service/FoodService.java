@@ -53,7 +53,7 @@ public class FoodService {
 
         food.setBusiness(business);
 
-        // 新增：填充 BaseEntity 字段（create/update 时间、用户、deleted）
+        // jinfeng新增：填充 BaseEntity 字段（create/update 时间、用户、deleted）
         LocalDateTime now = LocalDateTime.now();
         food.setCreateTime(now);
         food.setUpdateTime(now);
@@ -61,7 +61,7 @@ public class FoodService {
         food.setUpdater(user.getId());
         food.setDeleted(false); // 软删除默认 false
 
-        // 新增：填充可选字段默认值（如果前端未传或 null，设为空字符串而非 null）
+        // jinfeng新增：填充可选字段默认值（如果前端未传或 null，设为空字符串而非 null）
         if (food.getFoodExplain() == null) {
             food.setFoodExplain("");
         }
@@ -180,4 +180,6 @@ public class FoodService {
         // 新增：过滤软删除
         return allFoods.stream().filter(food -> !food.getDeleted()).collect(Collectors.toList());
     }
+
+    
 }

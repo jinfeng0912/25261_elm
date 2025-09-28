@@ -1,15 +1,22 @@
 <template>
-  <div class="search-page">
-    <div class="search-header">
-      <input
-        v-model="keyword"
-        @keyup.enter="handleSearch"
-        placeholder="🔍 搜索饿了么商家、商品名称"
-      />
+  <div class="wrapper">
+    <header>
+      <p>搜索商家</p>
+    </header>
+
+    <div class="search-bar">
+      <div class="search-box">
+        <i class="fa fa-search"></i>
+        <input
+          v-model="keyword"
+          @keyup.enter="handleSearch"
+          placeholder="搜索饿了么商家、商品名称"
+        />
+      </div>
       <button @click="handleSearch">搜索</button>
     </div>
 
-    <div v-if="history.length" class="section">
+    <div v-if="history.length && filteredBusinesses.length === 0" class="section">
       <h4>历史搜索</h4>
       <div class="tags">
         <span
@@ -22,7 +29,7 @@
       </div>
     </div>
 
-    <div class="section">
+    <div v-if="filteredBusinesses.length === 0" class="section">
       <h4>搜索发现</h4>
       <div class="tags hot">
         <span @click="searchFromTag('饺子')">🔥 饺子</span>
@@ -32,63 +39,78 @@
     </div>
 
     <div class="section">
-      <h4>搜索结果</h4>
-      <div v-if="loading" class="loading-state">正在搜索...</div>
-      <div v-else-if="filteredBusinesses.length > 0" class="card-list">
-        <div
+      <h4 v-if="filteredBusinesses.length > 0">搜索结果</h4>
+      
+      <div v-if="loading" class="loading-state">正在加载...</div>
+      
+      <ul v-else-if="filteredBusinesses.length > 0" class="business">
+        <li
           v-for="business in filteredBusinesses"
           :key="business.id"
-          class="card"
           @click="goToBusiness(business.id)"
         >
           <img :src="business.businessImg" />
-          <div class="info">
+          <div class="business-info">
             <h3>{{ business.businessName }}</h3>
-            <p>评分：{{ business.rating || 0 }} ★</p>
-            <p>月售：{{ business.monthlySales || 0 }} 单</p>
-            <p>距离：{{ business.distance || 0 }}km</p>
+            <div class="business-info-star">
+              <div class="business-info-star-left">
+                <!-- <i v-for="n in 5" :key="n" class="fa fa-star" :style="{color: n <= business.rating ? '#fec80e' : '#ddd'}"></i> -->
+                <p>月售{{ business.monthlySales || 0 }}单</p>
+              </div>
+            </div>
+            <div class="business-info-delivery">
+              <p>&#165;{{ business.startPrice || 0 }}起送 | &#165;{{ business.deliveryPrice || 0 }}配送</p>
+              <p v-if="business.distance">{{ business.distance }}km | {{ getDeliveryTime(business.distance) }}分钟</p>
+            </div>
           </div>
-        </div>
-      </div>
-      <p v-else-if="searched">没有匹配的商家~</p>
+        </li>
+      </ul>
+      
+      <p v-else-if="searched" class="empty-result">没有匹配的商家~</p>
     </div>
 
-    <div class="section">
+    <div v-if="filteredBusinesses.length === 0" class="section">
       <h4>为你推荐</h4>
-      <div class="card-list">
-        <div
+      <ul class="business">
+        <li
           v-for="biz in recommendedBusinesses"
           :key="'rec-' + biz.id"
-          class="card"
           @click="goToBusiness(biz.id)"
         >
           <img :src="biz.businessImg" />
-          <div class="info">
+          <div class="business-info">
             <h3>{{ biz.businessName }}</h3>
-            <p>评分：{{ biz.rating || 0 }} ★</p>
+             <div class="business-info-star">
+              <div class="business-info-star-left">
+                <!-- <i v-for="n in 5" :key="n" class="fa fa-star" :style="{color: n <= biz.rating ? '#fec80e' : '#ddd'}"></i> -->
+                <!-- <p>{{ biz.rating || 0 }}</p> -->
+              </div>
+            </div>
+            <div class="business-info-delivery">
+              <p>&#165;{{ biz.startPrice || 0 }}起送 | &#165;{{ biz.deliveryPrice || 0 }}配送</p>
+            </div>
           </div>
-        </div>
-      </div>
+        </li>
+      </ul>
     </div>
   </div>
 </template>
 
 <script setup>
+// --- 脚本部分完全不变，只关注样式和模板 ---
 import { ref, onMounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const axios = inject('axios');
 
-// --- 响应式数据 ---
 const keyword = ref('')
 const history = ref(['麦当劳', '饺子', '奶茶'])
-const allBusinesses = ref([]) // 存储从后端获取的所有商家
-const filteredBusinesses = ref([]) // 存储搜索结果
+const allBusinesses = ref([]) 
+const filteredBusinesses = ref([]) 
 const loading = ref(false)
-const searched = ref(false) // 标记是否已执行过搜索
+const searched = ref(false) 
 
-// --- 从后端获取数据 ---
 onMounted(() => {
   fetchBusinesses();
 });
@@ -99,7 +121,6 @@ const fetchBusinesses = async () => {
     const response = await axios.get('/api/businesses');
     if (response.data && response.data.code === 'OK') {
       allBusinesses.value = response.data.data;
-      console.log('成功从后端获取所有商家数据用于搜索:', allBusinesses.value);
     }
   } catch (error) {
     console.error('获取商家数据失败:', error);
@@ -108,24 +129,20 @@ const fetchBusinesses = async () => {
   }
 };
 
-// --- 计算属性 ---
-// "为你推荐" 列表，这里简单地取前3个评分最高的商家
 const recommendedBusinesses = computed(() => {
   return [...allBusinesses.value]
     .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     .slice(0, 3);
 });
 
-// --- 方法 ---
 const handleSearch = () => {
-  searched.value = true; // 标记已搜索
+  searched.value = true;
   const key = keyword.value.trim();
   if (!key) {
     filteredBusinesses.value = [];
     return;
   }
   
-  // 添加到搜索历史
   if (!history.value.includes(key)) {
     history.value.unshift(key);
     if (history.value.length > 8) {
@@ -133,13 +150,9 @@ const handleSearch = () => {
     }
   }
   
-  // 从已获取的商家列表中筛选
   filteredBusinesses.value = allBusinesses.value.filter(b =>
     b.businessName.toLowerCase().includes(key.toLowerCase())
   );
-  
-  console.log('搜索关键词:', key);
-  console.log('搜索结果:', filteredBusinesses.value);
 };
 
 const searchFromTag = (tag) => {
@@ -148,130 +161,180 @@ const searchFromTag = (tag) => {
 };
 
 const goToBusiness = (id) => {
-  console.log('=== 跳转到商家详情 (来自搜索页) ===');
-  console.log('商家真实ID:', id);
   router.push({ 
     path: '/businessInfo', 
     query: { businessId: id } 
   });
 };
 
+const getDeliveryTime = (distance) => {
+  if (!distance || distance <= 0) return 25;
+  const timePerKm = 3;
+  const baseTime = 20;
+  let estimatedTime = baseTime + Math.round(distance * timePerKm);
+  if (distance > 50) return '距离过远';
+  if (estimatedTime > 90) return 90;
+  return estimatedTime;
+}
 </script>
 
 <style scoped>
-/* 您的样式代码保持不变，这里只添加加载状态的样式 */
-.loading-state {
-  padding: 20px;
-  text-align: center;
-  color: #999;
+/* --- 全局样式 --- */
+.wrapper {
+  width: 100%;
+  height: 100%;
+  background-color: #f5f5f5;
 }
-.search-page {
-  padding: 14px;
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-  background: #f6f6f6;
+
+/* --- 顶栏 (来自index.vue) --- */
+header {
+  width: 100%;
+  height: 12vw;
+  background-color: #0097FF;
+  color: #fff;
+  font-size: 4.8vw;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-.search-header {
+
+/* --- 搜索栏 --- */
+.search-bar {
+  margin-top: 12vw;
+  padding: 2vw 4vw;
+  background-color: #0097FF;
   display: flex;
   gap: 8px;
-  margin-bottom: 18px;
 }
-.search-header input {
+.search-bar .search-box {
   flex: 1;
-  padding: 10px 14px;
-  font-size: 15px;
-  border-radius: 20px;
-  border: 1px solid #ddd;
+  display: flex;
+  align-items: center;
   background-color: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  border-radius: 4px;
+  padding: 0 2vw;
 }
-.search-header button {
-  padding: 10px 16px;
+.search-bar .search-box .fa-search {
+  color: #999;
+}
+.search-bar .search-box input {
+  width: 100%;
+  border: none;
+  height: 9vw;
+  padding: 0 2vw;
+  font-size: 3.5vw;
+}
+.search-bar button {
+  padding: 0 4vw;
   background-color: #409EFF;
   color: white;
   border: none;
-  border-radius: 18px;
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 3.5vw;
   font-weight: bold;
-  transition: all 0.2s ease;
 }
-.search-header button:hover {
-  background-color: #337ecc;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
-}
+
+/* --- 内容区域 --- */
 .section {
-  margin-bottom: 18px;
+  padding: 0 4vw;
+  margin-top: 4vw;
+  background-color: #fff;
+  padding-bottom: 3vw;
 }
 .section h4 {
-  font-size: 16px;
+  font-size: 4vw;
   font-weight: bold;
   color: #333;
-  margin: 6px 0 10px;
+  margin: 0;
+  padding: 3vw 0;
+  border-bottom: 1px solid #f5f5f5;
 }
+
+/* --- 标签样式 --- */
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 2vw;
+  padding-top: 3vw;
 }
 .tags span {
-  padding: 6px 14px;
-  background: #eee;
-  border-radius: 20px;
-  font-size: 13px;
-  color: #444;
+  padding: 1.5vw 3vw;
+  background: #f5f5f5;
+  border-radius: 4vw;
+  font-size: 3.2vw;
+  color: #555;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-.tags span:hover {
-  background: #ddd;
-  transform: translateY(-1px);
 }
 .tags.hot span {
-  background-color: #ffecec;
+  background-color: #fff0f0;
   color: #f56c6c;
-  border: 1px solid #fbc4c4;
 }
-.tags.hot span:hover {
-  background-color: #ffe0e0;
-  border-color: #f7a3a3;
+.empty-result {
+  text-align: center;
+  color: #999;
+  padding: 10vw 0;
 }
-.card-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+
+/* --- 商家列表样式 (来自index.vue) --- */
+.business {
+  width: 100%;
 }
-.card {
-  display: flex;
-  gap: 12px;
-  background: white;
-  padding: 12px;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+.business li {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2.5vw 0;
+  user-select: none;
+  border-bottom: solid 1px #f5f5f5;
   cursor: pointer;
-  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
 }
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  background: #fafafa;
+.business li:last-child {
+  border-bottom: none;
 }
-.card img {
-  width: 60px;
-  height: 60px;
+.business li img {
+  width: 18vw;
+  height: 18vw;
+  border-radius: 1vw;
   object-fit: cover;
-  border-radius: 6px;
 }
-.card .info {
+.business li .business-info {
+  margin-left: 3vw;
   flex: 1;
 }
-.card .info h3 {
-  font-size: 16px;
-  margin-bottom: 4px;
+.business li .business-info h3 {
+  font-size: 4vw;
   color: #333;
+  margin-bottom: 1vw;
 }
-.card .info p {
-  font-size: 13px;
+.business li .business-info .business-info-star {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1vw;
+  font-size: 3.1vw;
+}
+.business li .business-info .business-info-star .business-info-star-left {
+  display: flex;
+  align-items: center;
+}
+.business li .business-info .business-info-star .business-info-star-left .fa-star {
+  margin-right: 0.5vw;
+}
+.business li .business-info .business-info-star .business-info-star-left p {
   color: #666;
-  margin: 2px 0;
+  margin-left: 1vw;
 }
+.business li .business-info .business-info-delivery {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #666;
+  font-size: 3.1vw;
+}
+
 </style>

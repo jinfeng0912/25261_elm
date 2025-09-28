@@ -5,7 +5,6 @@
       <i class="fa fa-arrow-left" @click="goBack"></i>
       <div class="header-info">
         <h3>{{ chatData.name }}</h3>
-        <p>粉丝群{{ chatData.fans }}人</p>
       </div>
       <div class="header-actions">
         <i class="fa fa-comments"></i>
@@ -16,13 +15,14 @@
     <div class="content">
       <!-- 聊天消息区域 -->
       <div class="chat-messages">
-        <div class="message-item" v-for="message in chatData.messages" :key="message.id">
-          <div class="message-avatar">
+        <div class="message-item" v-for="message in chatData.messages" :key="message.id" :class="{ 'user-message': message.isUser }">
+          <!-- 商家消息显示头像 -->
+          <div class="message-avatar" v-if="!message.isUser">
             <img :src="chatData.avatar" :alt="chatData.name">
           </div>
           <div class="message-content">
             <div class="message-header">
-              <span class="sender-name">{{ chatData.name }}</span>
+              <span class="sender-name">{{ message.isUser ? '我' : chatData.name }}</span>
               <span class="message-time">{{ message.time }}</span>
             </div>
             <div class="message-text">{{ message.content }}</div>
@@ -74,17 +74,20 @@ const businessChatData = {
       {
         id: 1,
         content: '亲爱的顾客，我们新推出的纯肉鲜饺和玉米鲜肉饺子现在有优惠！🥟',
-        time: '昨天 19:00'
+        time: '昨天 19:00',
+        isUser: false
       },
       {
         id: 2,
         content: '热腾腾的饺子配上我们的特色炒菜，绝对让您满意！',
-        time: '昨天 19:01'
+        time: '昨天 19:01',
+        isUser: false
       },
       {
         id: 3,
         content: '欢迎随时咨询我们的菜品信息哦～',
-        time: '昨天 19:02'
+        time: '昨天 19:02',
+        isUser: false
       }
     ]
   },
@@ -97,17 +100,20 @@ const businessChatData = {
       {
         id: 1,
         content: '欢迎光临茶兮鲜果饮品！🍹',
-        time: '昨天 18:30'
+        time: '昨天 18:30',
+        isUser: false
       },
       {
         id: 2,
         content: '新鲜芒果汁和经典珍珠奶茶等您来品尝～',
-        time: '昨天 18:31'
+        time: '昨天 18:31',
+        isUser: false
       },
       {
         id: 3,
         content: '这个季节来一杯暖暖的饮品最棒了！我们所有饮品都是现做现卖，保证新鲜美味！',
-        time: '昨天 18:32'
+        time: '昨天 18:32',
+        isUser: false
       }
     ]
   },
@@ -120,17 +126,20 @@ const businessChatData = {
       {
         id: 1,
         content: '今日特推：蛋黄焗豆花和麻婆豆腐！🍛',
-        time: '昨天 17:45'
+        time: '昨天 17:45',
+        isUser: false
       },
       {
         id: 2,
         content: '我们的豆腐都是当天现做，口感嫩滑，营养丰富。',
-        time: '昨天 17:46'
+        time: '昨天 17:46',
+        isUser: false
       },
       {
         id: 3,
         content: '蛋黄焗豆花是我们的招牌，一定要试试！',
-        time: '昨天 17:47'
+        time: '昨天 17:47',
+        isUser: false
       }
     ]
   },
@@ -143,17 +152,20 @@ const businessChatData = {
       {
         id: 1,
         content: '巨无霸套餐限时优惠！🍔',
-        time: '昨天 16:20'
+        time: '昨天 16:20',
+        isUser: false
       },
       {
         id: 2,
         content: '薯条可乐一应俱全，金黄香脆的薯条配上经典巨无霸，再来一杯冰爽可乐，完美组合！',
-        time: '昨天 16:21'
+        time: '昨天 16:21',
+        isUser: false
       },
       {
         id: 3,
         content: '快来下单吧！我们的汉堡新鲜制作，绝对美味！',
-        time: '昨天 16:22'
+        time: '昨天 16:22',
+        isUser: false
       }
     ]
   },
@@ -166,17 +178,20 @@ const businessChatData = {
       {
         id: 1,
         content: '烤串炸串大促销！🔥',
-        time: '星期四 20:15'
+        time: '星期四 20:15',
+        isUser: false
       },
       {
         id: 2,
         content: '新疆风味烤羊肉串、香嫩烤鸡翅，还有蒜蓉烤茄子，闭眼下单不踩雷！',
-        time: '星期四 20:16'
+        time: '星期四 20:16',
+        isUser: false
       },
       {
         id: 3,
         content: '我们的烤串都是现烤现卖，香味扑鼻！欢迎品尝～',
-        time: '星期四 20:17'
+        time: '星期四 20:17',
+        isUser: false
       }
     ]
   },
@@ -189,17 +204,20 @@ const businessChatData = {
       {
         id: 1,
         content: '糖醋排骨饭和红烧排骨饭今日特价！🍖',
-        time: '星期三 19:30'
+        time: '星期三 19:30',
+        isUser: false
       },
       {
         id: 2,
         content: '酸甜可口营养丰富的糖醋排骨，浓郁香味的红烧排骨！',
-        time: '星期三 19:31'
+        time: '星期三 19:31',
+        isUser: false
       },
       {
         id: 3,
         content: '配上软糯香甜的米饭，绝对满足您的味蕾！',
-        time: '星期三 19:32'
+        time: '星期三 19:32',
+        isUser: false
       }
     ]
   },
@@ -212,17 +230,20 @@ const businessChatData = {
       {
         id: 1,
         content: '韩式拌饭和石锅拌饭新鲜上线！🍚',
-        time: '星期二 18:00'
+        time: '星期二 18:00',
+        isUser: false
       },
       {
         id: 2,
         content: '热乎乎的石锅拌饭等您来尝～正宗韩式口味！',
-        time: '星期二 18:01'
+        time: '星期二 18:01',
+        isUser: false
       },
       {
         id: 3,
         content: '各种蔬菜搭配，营养均衡又美味！欢迎下单品尝！',
-        time: '星期二 18:02'
+        time: '星期二 18:02',
+        isUser: false
       }
     ]
   }

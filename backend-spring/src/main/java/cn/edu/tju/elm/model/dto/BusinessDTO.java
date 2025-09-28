@@ -45,7 +45,7 @@ public class BusinessDTO {
         // 假设 Business 实体中有 getRating() 和 getMonthlySales() 方法
         // 如果您的实体类中没有这两个字段，请根据实际情况删除或注释掉下面两行
         // this.rating = business.getRating();
-        // this.monthlySales = business.getMonthlySales();
+         this.monthlySales = business.getMonthlySales();
     }
 
     // --- Getters and Setters ---

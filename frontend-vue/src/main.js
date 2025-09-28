@@ -49,8 +49,10 @@ router.beforeEach(function(to, from, next) {
         '/adminLogin',      // 管理员登录页面
         '/adminRegister',   // 管理员注册页面
         '/adminPanel',       // 管理员面板页面
-        '/businessPanel'    // 商家面板页面
-
+        '/shiwuyou',
+        '/myLLM',
+        '/ai',
+        'testPage'
     ];
     
     // 检查当前路由是否在白名单中

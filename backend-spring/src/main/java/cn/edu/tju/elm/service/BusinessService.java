@@ -41,12 +41,12 @@ public class BusinessService {
     private FoodService foodService;
     @PersistenceContext
     private EntityManager entityManager;
-    
+
     private final String BAIDU_API_KEY = "h7ykSCW3nilIKlSlb5lK3vk7WLCnwhFB";
     private final OkHttpClient httpClient = new OkHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
-    
-/**
+
+    /**
      * 调用百度地图API将地址转换为经纬度坐标
      * @param address 文本地址
      * @return 包含经纬度的数组 [longitude, latitude]，失败则返回 null
@@ -89,7 +89,7 @@ public class BusinessService {
         return null;
     }
 
-/**
+    /**
      * 获取所有商家信息，并根据用户坐标动态计算距离
      * @param userLat 前端传递的用户纬度，可能为 null
      * @param userLng 前端传递的用户经度，可能为 null
@@ -132,6 +132,7 @@ public class BusinessService {
         Business business = new Business();
         business.setBusinessName((String) payload.get("businessName"));
         business.setBusinessAddress((String) payload.get("businessAddress"));
+        business.setMonthlySales(0);
         business.setBusinessExplain((String) payload.get("businessExplain"));
         business.setBusinessImg((String) payload.get("businessImg"));
         business.setRemarks((String) payload.get("remarks"));
@@ -392,7 +393,7 @@ public class BusinessService {
 
     /**
      * 一次性任务：为数据库中所有地址有效但缺少坐标的商家进行地理编码
-     * 
+     *
      * @return 处理结果的摘要信息
      */
     public String batchGeocodeExistingBusinesses() {
@@ -454,7 +455,7 @@ public class BusinessService {
 
     /**
      * 使用 Haversine 公式计算两点间的距离
-     * 
+     *
      * @param lat1 用户纬度
      * @param lon1 用户经度
      * @param lat2 商家纬度
@@ -469,7 +470,7 @@ public class BusinessService {
 
         double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                        * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 

@@ -43,6 +43,16 @@ public class OrderService {
         Business business = businessRepository.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("无效的商家ID: " + businessId));
 
+
+ // 1. 获取当前的月售量
+        Integer currentSales = business.getMonthlySales();
+        // 2. 如果月售量为 null (例如老数据), 则默认为 0
+        if (currentSales == null) {
+            currentSales = 0;
+        }
+        // 3. 将月售量加 1
+        business.setMonthlySales(currentSales + 1);
+        
         DeliveryAddress deliveryAddress = deliveryAddressRepository.findById(addressId)
                 .orElseThrow(() -> new IllegalArgumentException("无效的配送地址ID: " + addressId));
 

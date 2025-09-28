@@ -48,6 +48,9 @@ public class Business extends BaseEntity {
     @Column(name = "remarks")
     private String remarks;
 
+    @Column(name="monthly_sales")
+    private Integer monthlySales;
+
     // 隐藏原始的 getter 方法，防止 JSON 序列化时产生无限循环
     @JsonIgnore
     public User getBusinessOwner() {
@@ -150,4 +153,7 @@ public class Business extends BaseEntity {
     public void setLatitude(Double latitude) {
         this.latitude = latitude;
     }
+
+    public Integer getMonthlySales() {return monthlySales;}
+    public void setMonthlySales(Integer monthlySales) {this.monthlySales = monthlySales;}
 }

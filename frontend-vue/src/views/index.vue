@@ -237,11 +237,11 @@
                     </div>
                     <div class="business-info-star">
                         <div class="business-info-star-left">
+                            <!-- <i class="fa fa-star"></i>
                             <i class="fa fa-star"></i>
                             <i class="fa fa-star"></i>
                             <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
+                            <i class="fa fa-star"></i> -->
                             <p>{{ business.rating }} 月售{{ business.monthlySales }}单</p>
                         </div>
                         <div class="business-info-star-right">
@@ -250,7 +250,7 @@
                     </div>
                     <div class="business-info-delivery">
                         <p>&#165;{{ business.startPrice }}起送 | &#165;{{ business.deliveryPrice }}配送</p>
-                        <p>{{ business.distance }}km | {{ getDeliveryTime(business.distance) }}分钟</p>
+                        <p>{{ business.distance }}km | {{ getDeliveryTime(business.distance) }}{{ typeof getDeliveryTime(business.distance) === 'number' ? '分钟' : '' }}</p>
                     </div>
                     <div class="business-info-explain">
                         <div>{{ business.businessExplain }}</div>
@@ -279,23 +279,20 @@
 </template>
   
 <script setup>
-  import Footer from "../components/Footer.vue";
-  import { ref, onMounted, onUnmounted, inject, nextTick, computed } from "vue";
-  import { useRouter } from "vue-router";
-  // import sj01 from '@/assets/sj01.png'
-  // import sj02 from '@/assets/sj02.png'
-  // import sj03 from '@/assets/sj03.png'
-  // import sj04 from '@/assets/sj04.png'
-  // import sj05 from '@/assets/sj05.png'
-  // import sj06 from '@/assets/sj06.png'
-  // import sj07 from '@/assets/sj07.png'
+import Footer from "../components/Footer.vue";
+import { ref, onMounted, onUnmounted, inject, nextTick, computed } from "vue";
+import { useRouter } from "vue-router";
 
 const router = useRouter();
 const axios = inject('axios');
 const fixedBox = ref(null);
-const businessData = ref([]); 
+const businessData = ref([]);
 
-// 刮刮乐相关变量
+// --- 新增：加载、错误、用户位置的状态 ---
+const loading = ref(true);
+const error = ref(null);
+const userLocation = ref(null); // 用于存储用户的经纬度
+
 const isDropdownOpen = ref(false);
 const isScratching = ref(false);
 const scratchProgress = ref(0);
@@ -310,31 +307,84 @@ const scratchArea = ref(null);
 const isMouseDown = ref(false);
 
 // 响应式数据
-const currentSort = ref('rating'); // 当前排序类型
+const currentSort = ref('rating');
 
-// 搜索跳转方法
-const goToSearch = () => {
-  console.log('跳转到搜索页面')
-  router.push('/search')
-}
-
-const fetchBusinessData = async () => {
-  try {
-    console.log('开始获取商家数据:');
-    const response = await axios.get('/api/businesses');
-    if (response.data && response.data.data) { // <-- 检查并使用 response.data.data
-      businessData.value = response.data.data; // <-- 只取 data 数组部分
+// 获取用户地理位置的函数
+const getUserLocation = () => {
+  return new Promise((resolve, reject) => {
+    if (navigator.geolocation) {
+      console.log('浏览器支持地理位置，正在请求授权...');
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log('浏览器获取到的原始坐标:', position.coords);
+          const coords = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          console.log('成功获取用户坐标:', coords);
+          userLocation.value = coords; // 保存坐标
+          resolve(coords);
+        },
+        (err) => {
+          let reason = '获取地理位置失败。';
+          if (err.code === 1) { // code 1 代表用户拒绝授权
+             reason = '您已拒绝地理位置授权，无法计算距离和按距离排序。';
+          }
+          console.warn('⚠️ 获取用户坐标失败:', reason);
+          reject(new Error(reason));
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 } // 获取位置的配置
+      );
     } else {
-      businessData.value = []; // 如果没有数据，确保它是个空数组
+      reject(new Error('您的浏览器不支持地理位置功能。'));
     }
-    console.log('获取商家数据成功:', response.data);
-  } catch (error) {
-    console.error('获取商家数据时出错:', error);
-    businessData.value = []; // 出错时也确保它是个空数组
+  });
+};
+
+// --- 改造：获取商家数据的函数 ---
+const fetchBusinessData = async () => {
+  loading.value = true;
+  error.value = null;
+  
+  try {
+    // 1. 先尝试获取用户位置
+    await getUserLocation();
+  } catch (locationError) {
+    // 如果获取位置失败，我们仍然可以加载商家列表，只是没有距离信息
+    console.log('获取位置失败，将加载无距离的商家列表。');
+    // 可以在页面上给用户一个提示
+    // error.value = locationError.message; 
+  }
+  
+  try {
+    console.log('开始从后端获取商家数据...');
+    
+    // 2. 构造API请求参数，如果获取到了用户位置，就带上经纬度
+    const params = {};
+    if (userLocation.value) {
+      params.userLat = userLocation.value.lat;
+      params.userLng = userLocation.value.lng;
+    }
+    
+    // 3. 发送带有参数的API请求
+    const response = await axios.get('/api/businesses', { params });
+    
+    if (response.data && response.data.code === 'OK') {
+      businessData.value = response.data.data;
+      console.log(`成功获取 ${businessData.value.length} 家商家数据`,businessData.value);
+      
+    } else {
+      throw new Error(response.data.message || '获取商家数据格式不正确');
+    }
+  } catch (fetchError) {
+    console.error('❌ 获取商家数据失败:', fetchError);
+    error.value = '加载商家列表失败，请检查网络连接。';
+  } finally {
+    loading.value = false;
   }
 };
 
-// 计算属性：根据排序类型返回排序后的商家列表 (这段代码无需修改)
+// --- 计算属性 (无需修改，但现在它可以正常工作了) ---
 const displayedBusinessList = computed(() => {
   if (!businessData.value || businessData.value.length === 0) {
     return [];
@@ -342,207 +392,321 @@ const displayedBusinessList = computed(() => {
   
   const sortedList = [...businessData.value];
   
-  console.log('=== 开始排序 ===');
-  console.log('排序类型:', currentSort.value);
-  
   switch (currentSort.value) {
     case 'distance':
-      sortedList.sort((a, b) => a.distance - b.distance);
-      console.log('按距离排序完成');
-      break;
+      // 先过滤掉没有距离的商家（以防万一），再进行排序
+      return sortedList.filter(b => b.distance != null).sort((a, b) => a.distance - b.distance);
     case 'sales':
-      sortedList.sort((a, b) => b.monthlySales - a.monthlySales);
-      console.log('按销量排序完成');
-      break;
+      return sortedList.sort((a, b) => (b.monthlySales || 0) - (a.monthlySales || 0));
     case 'rating':
     default:
-      sortedList.sort((a, b) => b.rating - a.rating);
-      console.log('按评分排序完成');
-      break;
+      return sortedList.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
-  
-  sortedList.slice(0, 3).forEach((business, index) => {
-    console.log(`排序结果[${index + 1}]: ${business.businessName} - 距离:${business.distance}km 销量:${business.monthlySales} 评分:${business.rating}`);
-  });
-  
-  return sortedList;
 });
 
-// 生成订单号
-const generateOrderId = () => {
-  const now = new Date();
-  const timestamp = now.getFullYear().toString()
-    + (now.getMonth() + 1).toString().padStart(2, '0')
-    + now.getDate().toString().padStart(2, '0')
-    + now.getHours().toString().padStart(2, '0')
-    + now.getMinutes().toString().padStart(2, '0')
-    + now.getSeconds().toString().padStart(2, '0');
-  const random = Math.floor(Math.random() * 900 + 100);
-  return "VIP" + timestamp + random;
+// --- 改造：排序方法，增加距离排序前的检查 ---
+const sortBusinessBy = (sortType) => {
+  if (sortType === 'distance' && !userLocation.value) {
+    alert('需要您授权地理位置后才能按距离排序，请刷新页面重试。');
+    return;
+  }
+  currentSort.value = sortType;
+}
+
+//估算配送时间
+const getDeliveryTime = (distance) => {
+  if (!distance || distance <= 0) {
+    return 25; // 基础时间
+  }
+  
+  // 按照平均速度估算 (例如：平均时速20km/h，即每公里3分钟)
+  const timePerKm = 3; // 每公里分钟数
+  const baseTime = 20; // 基础出餐、等候时间
+  
+  let estimatedTime = baseTime + Math.round(distance * timePerKm);
+
+  // 为超长距离设置一个上限或特殊提示
+  if (distance > 50) { // 如果距离大于50公里，这通常不是一个有效的外卖单
+    return '距离过远，无法配送';
+  }
+
+  // 可以设置一个最长时间上限，例如90分钟
+  if (estimatedTime > 90) {
+    return 90;
+  }
+  
+  return estimatedTime;
+}
+
+const goToSearch = () => router.push('/search');
+const generateOrderId = () => "VIP" + Date.now() + Math.floor(Math.random() * 900 + 100);
+
+// 刮刮乐相关变量
+let canvas = null;
+let ctx = null;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+
+// 初始化画布
+const initCanvas = () => {
+  nextTick(() => {
+    if (scratchCanvas.value && scratchArea.value) {
+      canvas = scratchCanvas.value;
+      ctx = canvas.getContext('2d');
+      
+      // 设置画布尺寸
+      const rect = scratchArea.value.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      
+      // 绘制刮刮乐涂层
+      drawScratchLayer();
+    }
+  });
 };
 
-// 初始化刮刮乐画布
-const initCanvas = () => {
-  const canvas = scratchCanvas.value;
-  if (!canvas) return;
+// 绘制刮刮乐涂层
+const drawScratchLayer = () => {
+  if (!ctx) return;
   
-  const ctx = canvas.getContext('2d');
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  
+  // 创建渐变背景
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
   gradient.addColorStop(0, '#C0C0C0');
-  gradient.addColorStop(0.5, '#E6E6E6');
-  gradient.addColorStop(1, '#C0C0C0');
+  gradient.addColorStop(0.5, '#D3D3D3');
+  gradient.addColorStop(1, '#A9A9A9');
   
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
+  // 添加文字提示
   ctx.fillStyle = '#666';
   ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('刮开有惊喜', canvas.width / 2, canvas.height / 2);
+  ctx.fillText('刮开涂层', canvas.width / 2, canvas.height / 2 - 10);
+  ctx.fillText('查看奖励', canvas.width / 2, canvas.height / 2 + 10);
 };
 
-// 处理刮刮乐逻辑
-const handleScratch = (e) => {
-  if (!isMouseDown.value || showResult.value) return;
-  
-  const canvas = scratchCanvas.value;
-  if (!canvas) return;
-  
-  const ctx = canvas.getContext('2d');
-  const rect = canvas.getBoundingClientRect();
-  
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.beginPath();
-  ctx.arc(x, y, 20, 0, 2 * Math.PI);
-  ctx.fill();
-  
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const pixels = imageData.data;
-  let transparentPixels = 0;
-  
-  for (let i = 3; i < pixels.length; i += 4) {
-    if (pixels[i] === 0) transparentPixels++;
-  }
-  
-  const progress = (transparentPixels / (pixels.length / 4)) * 100;
-  scratchProgress.value = progress;
-  
-  if (progress > 30 && !showResult.value) {
-    const randomAmount = Math.floor(Math.random() * 4);
-    couponAmount.value = randomAmount;
-    showResult.value = true;
-    isScratching.value = false;
-  }
-};
-
-// 其他方法保持不变...
-// 开始刮奖
+// 开始刮奖（鼠标）
 const startScratch = (e) => {
-  if (showResult.value) return;
-  e.preventDefault();
-  isMouseDown.value = true;
-  isScratching.value = true;
-  handleScratch(e);
+  isDrawing = true;
+  const rect = canvas.getBoundingClientRect();
+  lastX = e.clientX - rect.left;
+  lastY = e.clientY - rect.top;
 };
 
-// 停止刮奖
+// 处理刮奖（鼠标）
+const handleScratch = (e) => {
+  if (!isDrawing || !ctx) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const currentX = e.clientX - rect.left;
+  const currentY = e.clientY - rect.top;
+  
+  // 设置刮除效果
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.lineWidth = 20;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(currentX, currentY);
+  ctx.stroke();
+  
+  lastX = currentX;
+  lastY = currentY;
+  
+  // 检查刮开面积
+  checkScratchProgress();
+};
+
+// 停止刮奖（鼠标）
 const stopScratch = () => {
-  isMouseDown.value = false;
+  isDrawing = false;
 };
 
-// 触摸开始
+// 开始刮奖（触摸）
 const startScratchTouch = (e) => {
-  if (showResult.value) return;
   e.preventDefault();
-  isMouseDown.value = true;
-  isScratching.value = true;
+  isDrawing = true;
+  const rect = canvas.getBoundingClientRect();
   const touch = e.touches[0];
-  const mouseEvent = {
-    clientX: touch.clientX,
-    clientY: touch.clientY
-  };
-  handleScratch(mouseEvent);
+  lastX = touch.clientX - rect.left;
+  lastY = touch.clientY - rect.top;
 };
 
-// 触摸移动
+// 处理刮奖（触摸）
 const handleScratchTouch = (e) => {
-  if (!isMouseDown.value) return;
+  if (!isDrawing || !ctx) return;
+  
   e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
   const touch = e.touches[0];
-  const mouseEvent = {
-    clientX: touch.clientX,
-    clientY: touch.clientY
-  };
-  handleScratch(mouseEvent);
+  const currentX = touch.clientX - rect.left;
+  const currentY = touch.clientY - rect.top;
+  
+  // 设置刮除效果
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.lineWidth = 20;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(currentX, currentY);
+  ctx.stroke();
+  
+  lastX = currentX;
+  lastY = currentY;
+  
+  // 检查刮开面积
+  checkScratchProgress();
 };
 
-// 切换下拉框
-const toggleDropdown = () => {
-  isDropdownOpen.value = !isDropdownOpen.value;
-  if (isDropdownOpen.value) {
-    nextTick(() => {
-      setTimeout(() => {
-        initCanvas();
-      }, 100);
-    });
+// 检查刮开进度
+const checkScratchProgress = () => {
+  if (!ctx) return;
+  
+  // 获取画布图像数据
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  let transparentPixels = 0;
+  let totalPixels = data.length / 4;
+  
+  // 计算透明像素数量
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] === 0) { // alpha 通道为 0 表示透明
+      transparentPixels++;
+    }
   }
-};
-
-// 关闭下拉框
-const closeDropdown = () => {
-  isDropdownOpen.value = false;
-  resetScratchState();
+  
+  // 计算刮开百分比
+  const scratchPercentage = (transparentPixels / totalPixels) * 100;
+  scratchProgress.value = scratchPercentage;
+  
+  // 如果刮开面积超过 30%，显示结果
+  if (scratchPercentage > 30 && !showResult.value) {
+    showResult.value = true;
+    // 随机生成红包金额
+    couponAmount.value = Math.random() > 0.3 ? Math.floor(Math.random() * 5) + 1 : 0;
+  }
 };
 
 // 重置刮刮乐状态
 const resetScratchState = () => {
   showResult.value = false;
-  isScratching.value = false;
-  scratchProgress.value = 0;
   couponAmount.value = 0;
+  scratchProgress.value = 0;
+  isDrawing = false;
+  
+  // 重新初始化画布
+  setTimeout(() => {
+    initCanvas();
+  }, 100);
 };
 
-// 跳转到支付页面
+const toggleDropdown = () => {
+  isDropdownOpen.value = !isDropdownOpen.value;
+  if (isDropdownOpen.value) {
+    // 打开时初始化画布
+    setTimeout(() => {
+      initCanvas();
+    }, 300);
+  } else {
+    // 关闭时重置状态
+    resetScratchState();
+  }
+};
+
+const closeDropdown = () => {
+  isDropdownOpen.value = false;
+  resetScratchState();
+};
 const goToPayment = () => {
   orderId.value = generateOrderId();
   orderTime.value = new Date().toLocaleString('zh-CN');
   showPayment.value = true;
 };
+const closePayment = () => showPayment.value = false;
 
-// 关闭支付页面
-const closePayment = () => {
-  showPayment.value = false;
-};
-
-// 支付逻辑
-const handlePayment = () => {
+// 处理支付
+const handlePayment = async () => {
   const paymentName = selectedPayMethod.value === 'alipay' ? '支付宝' : '微信支付';
   const finalAmount = (9.90 - couponAmount.value).toFixed(2);
-  alert(`订单 ${orderId.value} 已通过 ${paymentName} 成功付款！实付金额：¥${finalAmount}`);
-  goBackHome();
+  
+  console.log('=== 开始超级会员支付 ===');
+  console.log('订单号:', orderId.value);
+  console.log('支付方式:', paymentName);
+  console.log('原价: ¥9.90');
+  console.log('红包优惠: -¥' + couponAmount.value.toFixed(2));
+  console.log('实付金额: ¥' + finalAmount);
+  
+  try {
+    // 显示支付处理提示
+    alert(`正在使用${paymentName}支付超级会员，请稍候...`);
+    
+    // 模拟支付延迟
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // 模拟支付成功（90%成功率）
+    const success = Math.random() > 0.1;
+    
+    if (success) {
+      // 支付成功
+      alert(`支付成功！\n\n订单号：${orderId.value}\n超级会员（30天）\n支付方式：${paymentName}\n实付金额：¥${finalAmount}\n\n感谢您的购买！`);
+      
+      // 保存会员信息到本地存储（演示用）
+      const memberInfo = {
+        orderId: orderId.value,
+        orderTime: orderTime.value,
+        paymentMethod: paymentName,
+        amount: parseFloat(finalAmount),
+        couponAmount: couponAmount.value,
+        status: 'active',
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30天后
+      };
+      
+      // 保存到本地存储
+      const existingMembers = JSON.parse(localStorage.getItem('super_members') || '[]');
+      existingMembers.push(memberInfo);
+      localStorage.setItem('super_members', JSON.stringify(existingMembers));
+      
+      console.log('超级会员信息已保存:', memberInfo);
+      
+      // 关闭支付页面，返回首页
+      goBackHome();
+      
+    } else {
+      // 支付失败
+      alert('支付失败，请重试或选择其他支付方式。');
+    }
+    
+  } catch (error) {
+    console.error('支付处理错误:', error);
+    alert('支付过程中发生错误，请重试。');
+  }
 };
 
-// 返回首页
 const goBackHome = () => {
   isDropdownOpen.value = false;
   showPayment.value = false;
+  // 重置刮刮乐状态，允许重新刮奖
   resetScratchState();
 };
+const toSuperMember = () => router.push('/SuperMember');
+const goToBusiness = (businessId) => router.push({ path: '/businessInfo', query: { businessId } });
+const toBusinessList = (orderTypeId) => router.push({ path: "/businessList", query: { orderTypeId: orderTypeId } });
+const goToFilter = () => router.push('/filter');
 
-const toSuperMember = () => {
-  console.log('正在跳转到超级会员页面...');
-  router.push('/SuperMember');
-};
 
-// 生命周期
+// --- 生命周期钩子 ---
 onMounted(() => {
+  // 页面加载时，自动执行获取位置和加载商家数据的流程
+  fetchBusinessData();
+
   document.onscroll = () => {
     let s1 = document.documentElement.scrollTop;
     let s2 = document.body.scrollTop;
@@ -559,73 +723,11 @@ onMounted(() => {
       }
     }
   };
-  
-  fetchBusinessData();
-  
-  console.log('首页初始化完成，默认按评分排序');
 });
 
 onUnmounted(() => {
   document.onscroll = null;
 });
-
-// 方法定义
-/*const getBusinessImage = (businessId) => {
-  const imageMap = {
-    10001: sj01, 10002: sj02, 10003: sj03, 10004: sj04,
-    10005: sj05, 10006: sj06, 10007: sj07
-  };
-  return imageMap[businessId] || sj01;
-}*/
-
-const getDeliveryTime = (distance) => {
-  if (!distance || distance <= 0) return 20;
-  if (distance <= 2) return Math.round(20 + (distance - 1) * 6);
-  if (distance <= 5) return Math.round(26 + (distance - 2) * 4);
-  if (distance <= 8) return Math.round(38 + (distance - 5) * 2);
-  return Math.round(44 + Math.min(distance - 8, 2) * 1.5);
-}
-
-// 排序方法
-const sortBusinessBy = (sortType) => {
-  console.log('=== 点击排序按钮 ===');
-  console.log('排序类型:', sortType);
-  console.log('当前排序类型:', currentSort.value);
-  
-  if (currentSort.value === sortType) {
-    console.log('相同排序类型，跳过');
-    return;
-  }
-  
-  currentSort.value = sortType;
-  console.log('排序类型已更新为:', sortType);
-}
-
-// 跳转到商家详情
-const goToBusiness = (businessId) => {
-  console.log('=== 跳转到商家详情 ===');
-  console.log('商家ID:', businessId);
-  router.push({ 
-    path: '/businessInfo', 
-    query: { businessId } 
-  });
-}
-
-// 跳转到商家列表
-const toBusinessList = (orderTypeId) => {
-  console.log('跳转到商家列表，类型ID:', orderTypeId);
-  router.push({ 
-    path: "/businessList", 
-    query: { orderTypeId: orderTypeId } 
-  });
-};
-
-// 跳转到筛选页面
-const goToFilter = () => {
-  console.log('跳转到筛选页面');
-  router.push('/filter');
-};
-
 </script>
 
 <style scoped>

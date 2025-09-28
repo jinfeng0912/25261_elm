@@ -1,90 +1,116 @@
 <template>
   <div class="wrapper">
-    <!-- header -->
-    <header>
-      <i class="fa fa-arrow-left" @click="goBack"></i>
-      <p>消息中心</p>
-      <div class="header-right">
-        <i class="fa fa-shield-alt"></i>
-        <i class="fa fa-eye"></i>
+    <!-- 顶部导航栏 -->
+    <header class="app-header">
+      <i class="fas fa-arrow-left back-icon" @click="goBack"></i>
+      <h1 class="header-title">消息中心</h1>
+      <div class="header-actions">
+        <i class="fas fa-shield-alt security-icon"></i>
+        <i class="fas fa-eye view-icon"></i>
       </div>
     </header>
 
     <div class="content">
-      <!-- 平台消息 -->
-      <div class="section">
+      <!-- 平台消息部分 -->
+      <div class="message-section">
         <div class="section-header">
-          <h3>平台消息</h3>
-          <span class="view-all">查看全部 ></span>
+          <h2 class="section-title">平台消息</h2>
+          <span class="view-all"> <i class="fas fa-angle-right"></i></span>
         </div>
         
-        <!-- 毕业季消息 -->
-        <div class="message-item graduation-message">
-          <div class="message-icon graduation-icon">
-            <i class="fa fa-graduation-cap"></i>
+        <!-- 红包消息卡片 -->
+        <div class="message-card redpacket-card" @click="openRedPacket">
+          <div class="card-icon redpacket-icon">
+            <i class="fas fa-gift"></i>
           </div>
-          <div class="message-content">
-            <div class="message-header">
-              <span class="badge">毕业季</span>
-              <span class="title">2025毕业季来了</span>
-              <span class="tag">毕业账单</span>
-              <i class="fa fa-times close-icon"></i>
-            </div>
-            <p class="message-text">你的大学外卖账单出炉啦</p>
+          <div class="card-content">
+            <div class="card-text">亲~有一份惊喜在等待您</div>
+            <div class="card-subtext">21元红包已经到账，快来打开看看吧，感谢您的支持！</div>
+          </div>
+          <div class="card-time">21:45</div>
+          <div class="card-arrow">
+            <i class="fas fa-chevron-right"></i>
           </div>
         </div>
 
-        <!-- 食无忧保障消息 -->
-        <div class="message-item">
-          <div class="message-icon food-icon">
-            <i class="fa fa-cutlery"></i>
+        <!-- AI营养专家卡片 -->
+        <router-link to="/myLLM" class="message-card ai-nutrition-card">
+          <div class="card-icon nutrition-icon">
+            <i class="fas fa-apple-alt"></i>
           </div>
-          <div class="message-content">
-            <div class="message-text">食无忧保障已生效</div>
-            <div class="message-subtitle">点击查看保障详情>></div>
+          <div class="card-content">
+            <div class="card-text">AI营养专家</div>
+            <div class="card-subtext">点击查看详情 <i class="fas fa-angle-double-right"></i></div>
           </div>
-          <div class="message-time">星期四</div>
-        </div>
+        </router-link>
 
-        <div class="message-item">
-          <div class="message-icon food-icon">
-            <i class="fa fa-cutlery"></i>
+        <!-- 健康资讯卡片 -->
+        <a href="https://mp.weixin.qq.com/s/AJjFJ0CEOGulejft4fQvOg" target="_blank" class="message-card health-info-card">
+          <div class="card-icon health-icon">
+            <i class="fas fa-user-md"></i>
           </div>
-          <div class="message-content">
-            <div class="message-text">食无忧保障已生效</div>
-            <div class="message-subtitle">点击查看保障详情>></div>
+          <div class="card-content">
+            <div class="card-text">国家卫健委喊你科学减肥！</div>
+            <div class="card-subtext">点击查看两会健康指南 <i class="fas fa-external-link-alt"></i></div>
           </div>
-          <div class="message-time">星期三</div>
-        </div>
+          <div class="card-tag">最新政策</div>
+        </a>
+
+        <!-- 生活科普卡片 -->
+        <a href="https://mp.weixin.qq.com/s/5IxsPEg-x0gz_JSUVcifyQ" target="_blank" class="message-card life-science-card">
+          <div class="card-icon science-icon">
+            <i class="fas fa-flask"></i>
+          </div>
+          <div class="card-content">
+            <div class="card-text">隔夜水果是吃还是扔</div>
+            <div class="card-subtext">不要让"节俭"损害身体！ <i class="fas fa-external-link-alt"></i></div>
+          </div>
+          <div class="card-tag">科学原理</div>
+        </a>
+
+        <!-- 健康常识卡片 -->
+        <a href="https://mp.weixin.qq.com/s/QGBt70iUl9LuJ-UGw5AoZg" target="_blank" class="message-card health-tip-card">
+          <div class="card-icon tip-icon">
+            <i class="fas fa-heartbeat"></i>
+          </div>
+          <div class="card-content">
+            <div class="card-text">久坐腰疼的原因是什么？</div>
+            <div class="card-subtext">腰痛是因为肌肉紧张吗？ <i class="fas fa-external-link-alt"></i></div>
+          </div>
+          <div class="card-tag">生活常识</div>
+        </a>
       </div>
 
-      <!-- 聊天动态 -->
-      <div class="section">
-        <h3 class="section-title">聊天动态</h3>
+      <!-- 聊天动态部分 -->
+      <div class="chat-section">
+        <h2 class="section-title">聊天动态</h2>
         
-        <div class="chat-item" v-for="item in chatList" :key="item.id" @click="openChat(item)">
-          <div class="chat-avatar">
-            <img :src="item.avatar" :alt="item.name">
-          </div>
-          <div class="chat-content">
-            <div class="chat-header">
-              <h4>{{ item.name }}</h4>
-              <span class="chat-time">{{ item.time }}</span>
+        <div class="chat-list">
+          <div class="chat-item" v-for="item in chatList" :key="item.id" @click="openChat(item)">
+            <div class="chat-avatar">
+              <img :src="item.avatar" :alt="item.name" class="avatar-img">
+              <span class="unread-badge" v-if="item.unread">{{ item.unread }}</span>
             </div>
-            <div class="chat-message">
-              <span class="merchant-tag" v-if="item.isMerchant">商家：</span>
-              {{ item.message }}
-            </div>
-            <div class="chat-tags" v-if="item.tags && item.tags.length > 0">
-              <span class="tag" v-for="tag in item.tags" :key="tag">{{ tag }}</span>
+            <div class="chat-details">
+              <div class="chat-header">
+                <h3 class="chat-name">{{ item.name }}</h3>
+                <span class="chat-time">{{ item.time }}</span>
+              </div>
+              <div class="chat-preview">
+                <span class="merchant-tag" v-if="item.isMerchant">商家：</span>
+                {{ item.message }}
+              </div>
+              <div class="chat-tags" v-if="item.tags && item.tags.length > 0">
+                <span class="tag" v-for="tag in item.tags" :key="tag">{{ tag }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 底部菜单 -->
-    <Footer></Footer>
+    <!-- 底部导航栏 -->
+    <Footer class="app-footer"></Footer>
   </div>
 </template>
 
@@ -183,333 +209,352 @@ const openChat = (chatItem) => {
     query: { chatId: chatItem.id }
   })
 }
+
+// 红包点击事件
+const openRedPacket = () => {
+  console.log('打开红包卡券页面')
+  // 跳转到红包卡券页面
+  router.push('/redpacket')
+}
 </script>
 
 <style scoped>
+/* 基础样式 */
 .wrapper {
-  width: 100%;
-  min-height: 100vh;
+  font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
   background-color: #f5f5f5;
+  min-height: 100vh;
+  color: #333;
 }
 
-/* header */
-.wrapper header {
-  width: 100%;
-  height: 12vw;
-  background-color: #fff;
-  color: #333;
-  font-size: 4.8vw;
-  position: fixed;
-  left: 0;
+/* 顶部导航栏样式 */
+.app-header {
+  position: sticky;
   top: 0;
-  z-index: 1000;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 4vw;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  justify-content: space-between;
+  padding: 15px;
+  background-color:#0097FF;/* 纯蓝色背景 */
+  color: white;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  /* 可选：添加平滑过渡效果 */
 }
 
-.wrapper header .fa-arrow-left {
-  font-size: 5vw;
+
+.back-icon {
+  font-size: 18px;
   cursor: pointer;
-  color: #666;
 }
 
-.wrapper header p {
-  font-weight: bold;
-  color: #333;
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
 }
 
-.header-right {
+.header-actions {
   display: flex;
-  gap: 4vw;
+  gap: 15px;
 }
 
-.header-right i {
-  font-size: 5vw;
+.security-icon, .view-icon {
+  font-size: 18px;
   cursor: pointer;
-  color: #666;
 }
 
-/* 内容区域 */
+/* 内容区域样式 */
 .content {
-  margin-top: 12vw;
-  margin-bottom: 14vw;
-  padding: 0;
+  padding: 15px;
+  padding-bottom: 70px;
 }
 
-/* 区域样式 */
-.section {
-  background-color: #fff;
-  margin-bottom: 2vw;
-}
-
-.section-header {
+/* 消息卡片通用样式 */
+.message-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 4vw;
-  border-bottom: 1px solid #f0f0f0;
+  background-color: white;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.section-header h3 {
-  font-size: 4vw;
-  color: #333;
-  margin: 0;
-  font-weight: bold;
+.message-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.view-all {
-  color: #999;
-  font-size: 3.2vw;
-  cursor: pointer;
-}
-
-.section-title {
-  font-size: 4vw;
-  color: #333;
-  padding: 4vw;
-  margin: 0;
-  border-bottom: 1px solid #f0f0f0;
-  font-weight: bold;
-}
-
-/* 消息项目 */
-.message-item {
-  display: flex;
-  padding: 4vw;
-  border-bottom: 1px solid #f0f0f0;
-  position: relative;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.message-item:hover {
-  background-color: #f9f9f9;
-}
-
-.message-item:last-child {
-  border-bottom: none;
-}
-
-.graduation-message {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  border-radius: 2vw;
-  margin: 2vw 4vw;
-  padding: 4vw;
-  border-bottom: none;
-}
-
-.message-icon {
-  width: 12vw;
-  height: 12vw;
+.card-icon {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 3vw;
+  margin-right: 15px;
+  font-size: 18px;
   color: white;
-  font-size: 6vw;
-  flex-shrink: 0;
 }
 
-.graduation-icon {
-  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
-}
-
-.food-icon {
-  background-color: #ff9800;
-}
-
-.message-content {
+.card-content {
   flex: 1;
 }
 
-.message-header {
+.card-header {
   display: flex;
   align-items: center;
-  gap: 2vw;
-  margin-bottom: 2vw;
-  flex-wrap: wrap;
+  margin-bottom: 5px;
 }
 
-.badge {
-  background-color: #2196F3;
-  color: white;
-  padding: 1vw 2vw;
-  border-radius: 2vw;
-  font-size: 2.8vw;
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 8px 0 0;
+}
+
+.card-text {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.card-subtext {
+  font-size: 13px;
+  color: #888;
+  margin-top: 3px;
+}
+
+.card-time {
+  font-size: 12px;
+  color: #999;
+  margin-left: 10px;
+}
+
+.card-arrow {
+  margin-left: 10px;
+  color: #ccc;
+}
+
+.card-tag {
+  background-color: #f0f0f0;
+  color: #666;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 10px;
+}
+
+/* 特定卡片样式 */
+.graduation-card {
+  border-left: 4px solid #ff9800;
+}
+
+.graduation-icon {
+  background-color: #ff9800;
+}
+
+.graduation-badge {
+  background-color: #ffeb3b;
+  color: #ff9800;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
   font-weight: bold;
 }
 
-.title {
-  font-size: 3.8vw;
-  color: #333;
-  font-weight: bold;
+.bill-tag {
+  background-color: #e3f2fd;
+  color: #2196f3;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
-.tag {
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #666;
-  padding: 1vw 2vw;
-  border-radius: 2vw;
-  font-size: 2.6vw;
-  border: 1px solid #ddd;
+.redpacket-card {
+  border-left: 4px solid #e91e63;
 }
 
-.close-icon {
-  margin-left: auto;
-  color: #999;
-  cursor: pointer;
-  font-size: 4vw;
+.redpacket-icon {
+  background-color: #e91e63;
 }
 
-.message-text {
-  font-size: 3.4vw;
-  color: #333;
-  margin-bottom: 1vw;
-  line-height: 1.4;
+.ai-nutrition-card {
+  border-left: 4px solid #4caf50;
 }
 
-.message-subtitle {
-  font-size: 3vw;
-  color: #666;
-  cursor: pointer;
+.nutrition-icon {
+  background-color: #4caf50;
 }
 
-.message-subtitle:hover {
-  color: #0097FF;
+.health-info-card {
+  border-left: 4px solid #3f51b5;
 }
 
-.message-time {
-  position: absolute;
-  right: 4vw;
-  top: 4vw;
-  font-size: 2.8vw;
-  color: #999;
+.health-icon {
+  background-color: #3f51b5;
 }
 
-/* 聊天项目 */
+.life-science-card {
+  border-left: 4px solid #009688;
+}
+
+.science-icon {
+  background-color: #009688;
+}
+
+.health-tip-card {
+  border-left: 4px solid #ff5722;
+}
+
+.tip-icon {
+  background-color: #ff5722;
+}
+
+/* 聊天动态样式 */
+.chat-section {
+  margin-top: 25px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #555;
+}
+
+.chat-list {
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
 .chat-item {
   display: flex;
-  padding: 3vw 4vw;
+  padding: 15px;
   border-bottom: 1px solid #f0f0f0;
-  position: relative;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.chat-item:hover {
-  background-color: #f9f9f9;
+  transition: background-color 0.2s;
 }
 
 .chat-item:last-child {
   border-bottom: none;
 }
 
-.chat-avatar {
-  position: relative;
-  margin-right: 3vw;
-  flex-shrink: 0;
+.chat-item:hover {
+  background-color: #f9f9f9;
 }
 
-.chat-avatar img {
-  width: 12vw;
-  height: 12vw;
-  border-radius: 2vw;
+.chat-avatar {
+  position: relative;
+  margin-right: 15px;
+}
+
+.avatar-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
   object-fit: cover;
 }
 
-.chat-content {
+.unread-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff5722;
+  color: white;
+  font-size: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-details {
   flex: 1;
-  min-width: 0; /* 防止文本溢出 */
 }
 
 .chat-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1vw;
+  margin-bottom: 5px;
 }
 
-.chat-header h4 {
-  font-size: 3.6vw;
-  color: #333;
+.chat-name {
+  font-size: 16px;
+  font-weight: 600;
   margin: 0;
-  font-weight: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
 }
 
 .chat-time {
-  font-size: 2.8vw;
+  font-size: 12px;
   color: #999;
-  flex-shrink: 0;
-  margin-left: 2vw;
 }
 
-.chat-message {
-  font-size: 3.2vw;
+.chat-preview {
+  font-size: 14px;
   color: #666;
-  line-height: 1.5;
-  margin-bottom: 2vw;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .merchant-tag {
-  color: #0097FF;
+  color: #ff5722;
   font-weight: bold;
 }
 
 .chat-tags {
+  margin-top: 5px;
   display: flex;
-  gap: 2vw;
   flex-wrap: wrap;
+  gap: 5px;
 }
 
-.chat-tags .tag {
+.tag {
   background-color: #f0f0f0;
   color: #666;
-  font-size: 2.6vw;
-  padding: 1vw 2vw;
-  border-radius: 2vw;
-  border: none;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
-/* 响应式调整 */
-@media (max-width: 480px) {
-  .message-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1vw;
-  }
-  
-  .close-icon {
-    position: absolute;
-    top: 0;
-    right: 0;
-  }
+.view-all {
+  font-size: 14px;
+  color: #888;
+  display: flex;
+  align-items: center;
 }
 
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
 }
 
-.message-item, .chat-item {
-  animation: fadeIn 0.3s ease-out;
+.close-btn {
+  margin-left: auto;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: #999;
+}
+
+/* 底部导航栏样式 */
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 100;
 }
 </style>

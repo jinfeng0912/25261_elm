@@ -118,13 +118,37 @@ const routes = [{
         name: 'DylLogin',
         component: () => import('@/views/DylLogin.vue')
     },{
-  path: '/message',
-  name: 'Message',
-  component: () => import('@/views/Message.vue')
-}, {
+        path: '/shiwuyou',
+        name: 'Shiwuyou',
+        component: () => import('@/views/Shiwuyou.vue')
+    },{
+        path: '/myLLM',
+        name: 'MyLLM',
+        component: () => import('@/views/MyLLM.vue')
+    },{
+        path: '/myLLMBusinessHelper',
+        name: 'MyLLMBusinessHelper',
+        component: () => import('@/views/MyLLMBusinessHelper.vue')
+    },{
+        path: '/ai',
+        name: 'Ai',
+        componet : () => import('@/views/Ai.vue')
+    }, {
+        path: '/testPage',
+        name: 'TestPage',
+        component: () => import('@/views/TestPage.vue')
+    },{
+        path: '/message',
+        name: 'Message',
+        component: () => import('@/views/Message.vue')
+}   , {
   path: '/chatDetail',
   name: 'ChatDetail',
   component: () => import('@/views/ChatDetail.vue')
+} ,{
+  path: '/redpacket',
+  name: 'RedPacket',
+  component: () => import('@/views/RedPacket.vue')
 }
 ]
 

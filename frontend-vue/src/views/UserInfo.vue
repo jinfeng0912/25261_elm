@@ -12,7 +12,7 @@
                 <!-- 头像区域 -->
                 <div class="avatar-section">
                     <div class="avatar-wrapper">
-                        <img src="https://via.placeholder.com/150" alt="用户头像" class="user-avatar">
+                        <img :src="defaultAvatar" alt="用户头像" class="user-avatar">
                     </div>
                     <div class="avatar-edit">
                         <i class="fa fa-camera"></i>
@@ -27,30 +27,14 @@
                     </div>
                     <div class="info-item">
                         <span class="info-label">账号</span>
-                        <span class="info-value">user123</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">手机号</span>
-                        <span class="info-value">138****8888</span>
+                        <span class="info-value"> {{ userIdDisplay }}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">会员等级</span>
-                        <span class="info-value vip">黄金会员</span>
+                        <span class="info-value vip">无会员</span>
                     </div>
                 </div>
 
-                <!-- 其他信息卡片 -->
-                <div class="card-section">
-                    <div class="info-card">
-                        <div class="card-icon">⚙️</div>
-                        <div class="card-content">
-                            <h4>设置</h4>
-                            <p>账号与安全设置</p>
-                        </div>
-                        <i class="fa fa-chevron-right"></i>
-                    </div>
-                </div>
-                
                 <!-- 退出登录按钮 -->
                 <div class="logout-btn-box">
                     <button class="logout-btn" @click="logout">退出登录</button>
@@ -82,53 +66,53 @@
 
 <script>
 import { useRouter } from "vue-router";
+import { onMounted } from "vue";
+import defaultAvatar from '../../public/images/default_user_icon.jpg'; // 导入默认头像图片
 
 export default {
-    setup() {
-        const router = useRouter();
+  setup() {
+    const router = useRouter();
 
-        const toIndex = () => {
-            router.push({ path: "/index" });
-        };
+    // 检查登录状态
+    const checkLogin = () => {
+      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      if (!isLoggedIn) {
+        router.push('/login');
+      }
+    };
 
-        const toMessage = () => {
-            router.push({ path: "/message" });
-        };
+    // 路由跳转方法
+    const toIndex = () => router.push("/index");
+    const toMessage = () => router.push("/message");
+    const toOrderList = () => router.push("/orderList");
+    const toUserInfo = () => router.push("/userInfo");
 
-        const toOrderList = () => {
-            router.push({ path: "/orderList" });
-        };
+    // 退出登录
+    const logout = () => {
+      localStorage.removeItem('id_token');
+      localStorage.removeItem('userId');
+      localStorage.setItem('isLoggedIn', 'false');
+      console.log('退出用户登录成功');
+      router.replace('/login');
+    };
 
-        const toLogin = () => {
-            router.push({ path: "/userInfo" });
-        };
+    // 组件挂载时检查登录状态
+    onMounted(() => {
+      console.log('初始化检查登录状态');
+      checkLogin();
+    });
 
-        return {
-            toIndex,
-            toMessage,
-            toOrderList,
-            toLogin
-        };
-    },
-    data() {
-        return {
-            // 静态用户数据
-            userInfo: {
-                avatar: 'https://via.placeholder.com/150',
-                nickname: '美食达人',
-                username: 'user123',
-                phone: '138****8888',
-                vipLevel: '黄金会员'
-            }
-        }
-    },
-    methods: {
-        logout() {
-            console.log('用户点击退出登录')
-            alert('您已退出登录')
-        }
-    }
-}
+    return {
+      toIndex,
+      toMessage,
+      toOrderList,
+      toUserInfo,
+      logout,
+      userId: localStorage.getItem('userId') || '未登录',
+      defaultAvatar // 将默认头像作为响应式数据返回
+    };
+  }
+};
 </script>
 
 <style scoped>

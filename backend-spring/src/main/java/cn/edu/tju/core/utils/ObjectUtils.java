@@ -38,22 +38,22 @@ public class ObjectUtils {
                 Object result=getMethod.invoke(newObj);
                 // if (field.get(newObj) != null) {
                 if (!field.getName().equals("id") && result!=null) {
-                    if (field.getGenericType() == java.lang.String.class) {
+                    if (field.getGenericType() == String.class) {
                         // getDeclaredMethod("set"+methodName) 获取该类当前属性的setXXX方法（私有和公有方法）
                         // getMethod("set"+methodName) 获取该类当前属性的setXXX方法（只能获取公有方法）
                         Method setMethod = clazz.getMethod("set" + methodName, String.class);
                         //执行该set方法
                         setMethod.invoke(existObj, (String) result);
-                    } else if (field.getGenericType() == java.lang.Integer.class) {
+                    } else if (field.getGenericType() == Integer.class) {
                         Method setMethod = clazz.getMethod("set" + methodName, Integer.class);
                         setMethod.invoke(existObj, (Integer) result);
-                    } else if (field.getGenericType() == java.lang.Long.class) {
+                    } else if (field.getGenericType() == Long.class) {
                         Method setMethod = clazz.getMethod("set" + methodName, Long.class);
                         setMethod.invoke(existObj, (Long) result);
-                    } else if (field.getGenericType() == java.lang.Boolean.class) {
+                    } else if (field.getGenericType() == Boolean.class) {
                         Method setMethod = clazz.getMethod("set" + methodName, Boolean.class);
                         setMethod.invoke(existObj, (Boolean) result);
-                    } else if (field.getGenericType() == java.time.LocalDateTime.class) {
+                    } else if (field.getGenericType() == LocalDateTime.class) {
                         Method setMethod = clazz.getMethod("set" + methodName, LocalDateTime.class);
                         setMethod.invoke(existObj, (LocalDateTime) result);
                     }

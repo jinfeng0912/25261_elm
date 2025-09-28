@@ -168,12 +168,17 @@ export default {
 
                 // 存储用户信息和登录状态
                 localStorage.setItem('userInfo', JSON.stringify(userInfo));
-                localStorage.setItem('loginStatus', 'true');
+                localStorage.setItem('isLoggedIn', 'true');
+
                 localStorage.setItem('role', this.currentRole);
-                localStorage.setItem('isLoggedIn', 'true');  // 添加登录状态标记
-                localStorage.setItem('userId', "not knowing");
+    
                 localStorage.setItem('token', token);
-                localStorage.setItem('userId', userId);
+                localStorage.setItem('userId', userInfo.id);
+
+                // 兼容依赖 sessionStorage 的页面
+                sessionStorage.setItem('user', JSON.stringify({ userId, token }));
+                // 全局附带 Authorization
+                try { axios.defaults.headers.common['Authorization'] = `Bearer ${token}`; } catch (e) {}
                 
                 console.log("已保存token" + localStorage.getItem('token'));
 
@@ -185,6 +190,19 @@ export default {
                 this.handleError(error);
                 alert(error.response?.data?.message || error.message || '登录失败');
             }
+        },
+        // 提供一个可复用的退出登录方法，供“我的/个人中心”等页面调用
+        hardLogout() {
+            try {
+                localStorage.removeItem('token');
+                localStorage.removeItem('userInfo');
+                localStorage.removeItem('userId');
+                localStorage.setItem('loginStatus','false');
+                localStorage.setItem('isLoggedIn','false');
+                sessionStorage.clear();
+                try { delete axios.defaults.headers.common['Authorization']; } catch (e) {}
+            } catch (e) {}
+            this.$router.push('/login');
         },
 
         async fetchUserInfo(token) {
@@ -203,7 +221,7 @@ export default {
                 'developer': '/testConn',
                 'user': '/'
             };
-            
+            console.log('登录成功，跳转至', routes[role] || '/');
             const redirectPath = routes[role] || '/';
             this.$router.push(redirectPath);
             alert(`${this.getRoleName(role)}登录成功！`);
@@ -241,7 +259,7 @@ export default {
 
             this.loading = true;
             try {
-                await this.unifiedLogin(this.user.userName);
+                await this.unifiedLogin();
             } finally {
                 this.loading = false;
             }
